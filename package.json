@@ -14,7 +14,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.stories.*",
+    "!dist/fixtures"
   ],
   "scripts": {
     "build": "tsc --noEmit && vite build",
