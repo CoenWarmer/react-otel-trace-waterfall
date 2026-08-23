@@ -48,6 +48,13 @@ export interface ThemeTokens {
    * trace. Set to 'transparent' to disable the animation.
    */
   newRowHighlightColor: string;
+  /**
+   * Fill color for event markers. Empty string uses the same barPalette cycling as regular bars
+   * (keyed by service name).
+   */
+  eventMarkerColor: string;
+  /** Diameter of event markers in px. */
+  eventMarkerSize: number;
 }
 
 export const defaultTheme: ThemeTokens = {
@@ -74,6 +81,8 @@ export const defaultTheme: ThemeTokens = {
   borderRadius: '6px',
   skeletonColor: '#edf2f7',
   newRowHighlightColor: '#bee3f8',
+  eventMarkerColor: '',
+  eventMarkerSize: 10,
 };
 
 export const darkTheme: ThemeTokens = {
@@ -100,4 +109,6 @@ export const darkTheme: ThemeTokens = {
   borderRadius: '6px',
   skeletonColor: '#2d3748',
   newRowHighlightColor: '#2a4365',
+  eventMarkerColor: '',
+  eventMarkerSize: 10,
 };
