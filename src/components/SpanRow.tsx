@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import type { FlatRow } from '../types';
+import type { FlatRow, SpanNode } from '../types';
 import type { TimeScale } from '../utils/timeScale';
 import { formatNanoDuration } from '../utils/timeScale';
 import { useTheme } from '../ThemeContext';
@@ -45,6 +45,14 @@ export interface RowPrefixProps {
   isNew: boolean;
 }
 
+/** Props passed to a custom event marker component rendered in the timeline column. */
+export interface EventComponentProps {
+  span: SpanNode;
+  /** Left offset in pixels from the start of the time axis (centre of the marker). */
+  x: number;
+  isSelected: boolean;
+}
+
 export interface SpanRowProps {
   row: FlatRow;
   scale: TimeScale;
@@ -63,6 +71,12 @@ export interface SpanRowProps {
    * Receives `{ row, isSelected, isNew }`.
    */
   RowPrefixComponent?: React.ComponentType<RowPrefixProps>;
+  /**
+   * Replaces the default diamond marker for EVENT-kind spans.
+   * Rendered inside an absolutely-positioned, centred wrapper at the span's timestamp.
+   * Receives `{ span, x, isSelected }`.
+   */
+  EventMarkerComponent?: React.ComponentType<EventComponentProps>;
   onToggle: (spanId: string) => void;
   onSelect: (spanId: string) => void;
   onHover?: (spanId: string) => void;
@@ -70,7 +84,7 @@ export interface SpanRowProps {
 }
 
 export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow(
-  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, onToggle, onSelect, onHover, onHoverEnd },
+  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, EventMarkerComponent, onToggle, onSelect, onHover, onHoverEnd },
   ref
 ) {
   const theme = useTheme();
@@ -187,47 +201,82 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
         role="gridcell"
         style={{ flex: 1, position: 'relative', overflow: 'hidden', height: '100%' }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            left: startPx,
-            top: 0,
-            bottom: 0,
-            width: 1,
-            backgroundColor: theme.rowBorder,
-          }}
-        />
-        <div
-          title={`${span.name}  ${serviceName ?? ''}  ${formatNanoDuration(durationNs)}`}
-          style={{
-            position: 'absolute',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            left: startPx,
-            width: barWidth,
-            height: BAR_HEIGHT,
-            backgroundColor: barColor,
-            borderRadius: 3,
-            opacity: isSelected ? 1 : isError ? 0.9 : 0.8,
-            outline: isSelected ? `2px solid ${barColor}` : undefined,
-            outlineOffset: 1,
-          }}
-        />
-        {barWidth > 30 && (
+        {span.kind === 'EVENT' ? (
+          // Event spans: fixed-size marker centred on the start timestamp; no bar.
           <div
             style={{
               position: 'absolute',
-              left: startPx + 4,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: 10,
-              color: '#fff',
-              whiteSpace: 'nowrap',
-              pointerEvents: 'none',
+              left: startPx,
+              top: 0,
+              bottom: 0,
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
-            {formatNanoDuration(durationNs)}
+            {EventMarkerComponent ? (
+              <EventMarkerComponent span={span} x={startPx} isSelected={isSelected} />
+            ) : (
+              <div
+                title={span.name}
+                style={{
+                  width: theme.eventMarkerSize,
+                  height: theme.eventMarkerSize,
+                  backgroundColor: theme.eventMarkerColor || barColor,
+                  transform: 'rotate(45deg)',
+                  borderRadius: 2,
+                  opacity: isSelected ? 1 : 0.85,
+                  outline: isSelected ? `2px solid ${theme.eventMarkerColor || barColor}` : undefined,
+                  outlineOffset: 2,
+                }}
+              />
+            )}
           </div>
+        ) : (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                left: startPx,
+                top: 0,
+                bottom: 0,
+                width: 1,
+                backgroundColor: theme.rowBorder,
+              }}
+            />
+            <div
+              title={`${span.name}  ${serviceName ?? ''}  ${formatNanoDuration(durationNs)}`}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                left: startPx,
+                width: barWidth,
+                height: BAR_HEIGHT,
+                backgroundColor: barColor,
+                borderRadius: 3,
+                opacity: isSelected ? 1 : isError ? 0.9 : 0.8,
+                outline: isSelected ? `2px solid ${barColor}` : undefined,
+                outlineOffset: 1,
+              }}
+            />
+            {barWidth > 30 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: startPx + 4,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: 10,
+                  color: '#fff',
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none',
+                }}
+              >
+                {formatNanoDuration(durationNs)}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

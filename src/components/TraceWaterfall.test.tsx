@@ -400,6 +400,29 @@ describe('TraceWaterfall', () => {
     );
   });
 
+  // ── EVENT spans ───────────────────────────────────────────────────────────
+
+  it('renders an event span row with no bar', () => {
+    const eventSpan = mkSpan({ spanId: 'ev', name: 'my event', kind: 'EVENT' });
+    render(<TraceWaterfall spans={[eventSpan]} />);
+    expect(screen.getByText('my event')).toBeInTheDocument();
+  });
+
+  it('renders EventMarkerComponent for EVENT spans', () => {
+    const eventSpan = mkSpan({ spanId: 'ev', name: 'my event', kind: 'EVENT' });
+    const Marker = ({ x }: { x: number; span: unknown; isSelected: boolean }) => (
+      <div data-testid="custom-marker" data-x={x} />
+    );
+    render(<TraceWaterfall spans={[eventSpan]} EventMarkerComponent={Marker} />);
+    expect(screen.getByTestId('custom-marker')).toBeInTheDocument();
+  });
+
+  it('does not render EventMarkerComponent for non-EVENT spans', () => {
+    const Marker = () => <div data-testid="custom-marker" />;
+    render(<TraceWaterfall spans={spans} EventMarkerComponent={Marker} />);
+    expect(screen.queryByTestId('custom-marker')).not.toBeInTheDocument();
+  });
+
   // ── disableKeyboardControls ────────────────────────────────────────────────
 
   it('does not respond to keyboard when disableKeyboardControls=true', () => {

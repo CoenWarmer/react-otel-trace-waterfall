@@ -8,6 +8,7 @@ export type {
   SpanComponentProps,
   ExpandComponentProps,
   RowPrefixProps,
+  EventComponentProps,
 } from './components/TraceWaterfall';
 export { SpanDetail } from './components/SpanDetail';
 export { buildSpanTree } from './utils/buildSpanTree';

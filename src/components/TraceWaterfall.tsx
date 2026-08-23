@@ -10,7 +10,7 @@ import { useContainerWidth } from '../hooks/useContainerWidth';
 import type { ZoomDomain } from '../hooks/useZoomPan';
 import { useZoomPan } from '../hooks/useZoomPan';
 import { SpanRow, LABEL_WIDTH, ROW_HEIGHT, BAR_HEIGHT } from './SpanRow';
-import type { ExpandComponentProps, RowPrefixProps } from './SpanRow';
+import type { ExpandComponentProps, RowPrefixProps, EventComponentProps } from './SpanRow';
 import { TimeAxis } from './TimeAxis';
 import { SpanDetail } from './SpanDetail';
 import { ThemeContext, useTheme } from '../ThemeContext';
@@ -48,7 +48,7 @@ export interface SpanComponentProps {
   onSelect: (spanId: string) => void;
 }
 
-export type { ExpandComponentProps, RowPrefixProps };
+export type { ExpandComponentProps, RowPrefixProps, EventComponentProps };
 
 export interface TraceWaterfallProps {
   spans: OtelSpan[];
@@ -110,6 +110,12 @@ export interface TraceWaterfallProps {
    * Receives `{ row, scale, isSelected, isFocused, isNew, onToggle, onSelect }`.
    */
   SpanComponent?: React.ComponentType<SpanComponentProps>;
+  /**
+   * Replaces the default diamond marker for EVENT-kind spans.
+   * Wrapped in an absolutely-positioned, centred container at the span's timestamp.
+   * Receives `{ span, x, isSelected }`.
+   */
+  EventMarkerComponent?: React.ComponentType<EventComponentProps>;
   /** Called when the span detail panel is closed. */
   onCloseSpan?: () => void;
   /** Replaces the built-in loading skeleton. */
@@ -211,6 +217,7 @@ function TraceWaterfallInner({
   SpanInspectComponent,
   RowPrefixComponent,
   SpanComponent,
+  EventMarkerComponent,
   onCloseSpan,
   SkeletonComponent,
   liveMode,
@@ -699,6 +706,7 @@ function TraceWaterfallInner({
                           isNew={isNew}
                           ExpandComponent={ExpandComponent}
                           RowPrefixComponent={RowPrefixComponent}
+                          EventMarkerComponent={EventMarkerComponent}
                           onToggle={toggle}
                           onSelect={select}
                           onHover={onSpanHover || TooltipComponent ? handleHover : undefined}
