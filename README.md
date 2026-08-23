@@ -23,28 +23,29 @@ Built on:
 
 ## Props
 
-| Prop                      | Type                                  | Default         | Notes                                                                    |
-| ------------------------- | ------------------------------------- | --------------- | ------------------------------------------------------------------------ |
-| `spans`                   | `OtelSpan[]`                          | required        |                                                                          |
-| `height`                  | `number \| string`                    | `'400px'`       |                                                                          |
-| `loading`                 | `boolean`                             | `false`         |                                                                          |
-| `theme`                   | `Partial<ThemeTokens>`                | `defaultTheme`  |                                                                          |
-| `allowZoom`               | `boolean`                             | `true`          | Disables wheel + drag when false                                         |
-| `zoomLevel`               | `number`                              | `1`             | Initial zoom factor from trace centre; > 1 starts locked (not following) |
-| `liveMode`                | `boolean`                             | internal        | When provided, controls following mode; omit to let component manage it  |
-| `onLiveModeChange`        | `(isLive: boolean) => void`           | —               | Fires when the user zooms (→ false) or resets (→ true)                   |
-| `FitButtonComponent`      | `ComponentType<FitButtonProps>`       | built-in button | Custom fit-to-width button; receives `{ onClick }`                       |
-| `ZoomResetComponent`      | `ComponentType<ZoomResetProps>`       | built-in button | Deprecated — use `FitButtonComponent` instead                            |
-| `onZoomReset`             | `() => void`                          | —               | Called alongside zoom reset                                              |
-| `onSelectSpan`            | `(span: SpanNode \| null) => void`    | —               | Called on selection change, `null` on deselect                           |
-| `onSpanHover`             | `(span: SpanNode \| null) => void`    | —               | Called on row pointer-enter; `null` on pointer-leave                     |
-| `TooltipComponent`        | `ComponentType<SpanTooltipProps>`     | —               | Rendered near the cursor while hovering; receives `{ span }`             |
-| `SpanInspectComponent`    | `ComponentType<SpanInspectProps>`     | `SpanDetail`    | Receives `{ span, onClose }`                                             |
-| `RowPrefixComponent`      | `ComponentType<RowPrefixProps>`       | —               | Rendered before every row label; receives `{ row, isSelected, isNew }`   |
-| `SpanComponent`           | `ComponentType<SpanComponentProps>`   | `SpanRow`       | Full row replacement; wrapped for a11y                                   |
-| `onCloseSpan`             | `() => void`                          | —               | Called when detail panel closes                                          |
-| `SkeletonComponent`       | `ComponentType`                       | built-in        | No props                                                                 |
-| `disableInspectPanel`     | `boolean`                             | `false`         | Hides the built-in detail panel; `onSelectSpan` still fires on click     |
-| `disableKeyboardControls` | `boolean`                             | `false`         |                                                                          |
-| `initialState`            | `'collapsed' \| 'expanded'`           | `'collapsed'`   | Seeds initial expandedIds                                                |
-| `ExpandComponent`         | `ComponentType<ExpandComponentProps>` | ▸/▾ button      | Ignored when `SpanComponent` is set                                      |
+| Prop                      | Type                                   | Default         | Notes                                                                     |
+| ------------------------- | -------------------------------------- | --------------- | ------------------------------------------------------------------------- |
+| `allowZoom`               | `boolean`                              | `true`          | Disables wheel + drag when false                                          |
+| `disableInspectPanel`     | `boolean`                              | `false`         | Hides the built-in detail panel; `onSelectSpan` still fires on click      |
+| `disableKeyboardControls` | `boolean`                              | `false`         |                                                                           |
+| `EventMarkerComponent`    | `ComponentType<EventComponentProps>`   | diamond marker  | Custom marker for `EVENT` spans; receives `{ span, x, isSelected }`      |
+| `ExpandComponent`         | `ComponentType<ExpandComponentProps>`  | ▸/▾ button      | Ignored when `SpanComponent` is set                                       |
+| `FitButtonComponent`      | `ComponentType<FitButtonProps>`        | built-in button | Custom fit-to-width button; receives `{ onClick }`                        |
+| `height`                  | `number \| string`                     | `'400px'`       |                                                                           |
+| `initialState`            | `'collapsed' \| 'expanded'`            | `'collapsed'`   | Seeds initial expandedIds                                                 |
+| `liveMode`                | `boolean`                              | internal        | When provided, controls following mode; omit to let component manage it   |
+| `loading`                 | `boolean`                              | `false`         |                                                                           |
+| `onCloseSpan`             | `() => void`                           | —               | Called when detail panel closes                                           |
+| `onLiveModeChange`        | `(isLive: boolean) => void`            | —               | Fires when the user zooms (→ false) or resets (→ true)                    |
+| `onSelectSpan`            | `(span: SpanNode \| null) => void`     | —               | Called on selection change, `null` on deselect                            |
+| `onSpanHover`             | `(span: SpanNode \| null) => void`     | —               | Called on row pointer-enter; `null` on pointer-leave                      |
+| `onZoomReset`             | `() => void`                           | —               | Called alongside zoom reset                                               |
+| `RowPrefixComponent`      | `ComponentType<RowPrefixProps>`        | —               | Rendered before every row label; receives `{ row, isSelected, isNew }`    |
+| `SkeletonComponent`       | `ComponentType`                        | built-in        | No props                                                                  |
+| `SpanComponent`           | `ComponentType<SpanComponentProps>`    | `SpanRow`       | Full row replacement; wrapped for a11y                                    |
+| `SpanInspectComponent`    | `ComponentType<SpanInspectProps>`      | `SpanDetail`    | Receives `{ span, onClose }`                                              |
+| `spans`                   | `OtelSpan[]`                           | required        |                                                                           |
+| `theme`                   | `Partial<ThemeTokens>`                 | `defaultTheme`  |                                                                           |
+| `TooltipComponent`        | `ComponentType<SpanTooltipProps>`      | —               | Rendered near the cursor while hovering; receives `{ span }`              |
+| `zoomLevel`               | `number`                               | `1`             | Initial zoom factor from trace centre; > 1 starts locked (not following)  |
+| `ZoomResetComponent`      | `ComponentType<ZoomResetProps>`        | built-in button | Deprecated — use `FitButtonComponent` instead                             |
