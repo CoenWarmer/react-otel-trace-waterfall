@@ -218,50 +218,53 @@ describe('TraceWaterfall', () => {
 
   // ── allowZoom ──────────────────────────────────────────────────────────────
 
-  it('shows no reset button when allowZoom=false (even after external liveMode change)', () => {
-    render(<TraceWaterfall spans={spans} allowZoom={false} liveMode={false} />);
-    expect(screen.queryByText('Reset zoom')).not.toBeInTheDocument();
+  it('hides Fit button when allowZoom=false', () => {
+    render(<TraceWaterfall spans={spans} allowZoom={false} />);
+    expect(screen.queryByText('Fit')).not.toBeInTheDocument();
+  });
+
+  it('shows Fit button when allowZoom=true (default)', () => {
+    render(<TraceWaterfall spans={spans} />);
+    expect(screen.getByText('Fit')).toBeInTheDocument();
   });
 
   // ── ZoomResetComponent ─────────────────────────────────────────────────────
 
-  it('renders ZoomResetComponent instead of built-in Reset zoom button', () => {
+  it('renders ZoomResetComponent instead of built-in Fit button', () => {
     const Reset = ({ onClick }: { onClick: () => void }) => (
       <button data-testid="custom-reset" onClick={onClick}>My reset</button>
     );
-    render(<TraceWaterfall spans={spans} liveMode={false} ZoomResetComponent={Reset} />);
+    render(<TraceWaterfall spans={spans} ZoomResetComponent={Reset} />);
     expect(screen.getByTestId('custom-reset')).toBeInTheDocument();
-    expect(screen.queryByText('Reset zoom')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fit')).not.toBeInTheDocument();
   });
 
-  it('onZoomReset is called when the built-in reset button is clicked', async () => {
+  it('onZoomReset is called when the Fit button is clicked', async () => {
     const onZoomReset = vi.fn();
-    render(<TraceWaterfall spans={spans} liveMode={false} onZoomReset={onZoomReset} />);
+    render(<TraceWaterfall spans={spans} onZoomReset={onZoomReset} />);
 
-    fireEvent.click(screen.getByText('Reset zoom'));
+    fireEvent.click(screen.getByText('Fit'));
 
     await waitFor(() => expect(onZoomReset).toHaveBeenCalledTimes(1));
   });
 
   // ── liveMode ───────────────────────────────────────────────────────────────
 
-  it('shows Reset zoom button when liveMode=false', () => {
-    render(<TraceWaterfall spans={spans} liveMode={false} />);
-    expect(screen.getByText('Reset zoom')).toBeInTheDocument();
+  it('Fit button is always visible regardless of liveMode', () => {
+    const { rerender } = render(<TraceWaterfall spans={spans} liveMode={false} />);
+    expect(screen.getByText('Fit')).toBeInTheDocument();
+
+    rerender(<TraceWaterfall spans={spans} liveMode={true} />);
+    expect(screen.getByText('Fit')).toBeInTheDocument();
   });
 
-  it('hides Reset zoom button when liveMode=true', () => {
-    render(<TraceWaterfall spans={spans} liveMode={true} />);
-    expect(screen.queryByText('Reset zoom')).not.toBeInTheDocument();
-  });
-
-  it('onLiveModeChange is called when liveMode is reset via built-in button', async () => {
+  it('onLiveModeChange is called when Fit button is clicked', async () => {
     const onLiveModeChange = vi.fn();
     render(
       <TraceWaterfall spans={spans} liveMode={false} onLiveModeChange={onLiveModeChange} />
     );
 
-    fireEvent.click(screen.getByText('Reset zoom'));
+    fireEvent.click(screen.getByText('Fit'));
 
     await waitFor(() =>
       expect(onLiveModeChange).toHaveBeenCalledWith(true)

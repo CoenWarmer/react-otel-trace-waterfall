@@ -192,6 +192,23 @@ function TraceWaterfallInner({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() =>
     initialState === 'expanded' ? allParentIds(spans) : new Set()
   );
+
+  // When initialState="expanded", merge any newly-arriving parent span IDs into
+  // expandedIds so that spans added after mount (e.g. live workflow phases) are
+  // also auto-expanded. Only runs when initialState is "expanded".
+  useEffect(() => {
+    if (initialState !== 'expanded') return;
+    setExpandedIds(prev => {
+      const parentIds = allParentIds(spans);
+      let changed = false;
+      const next = new Set(prev);
+      for (const id of parentIds) {
+        if (!next.has(id)) { next.add(id); changed = true; }
+      }
+      return changed ? next : prev;
+    });
+  }, [spans, initialState]);
+
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -498,24 +515,26 @@ function TraceWaterfallInner({
         <span>·</span>
         <span>{rows.length} visible</span>
         {selectedSpan && (<><span>·</span><span style={{ color: theme.rowFocusRing }}>{selectedSpan.name}</span></>)}
-        {allowZoom && !effectiveLiveMode && (
+        {allowZoom && (
           ZoomResetComponent
             ? <ZoomResetComponent onClick={handleZoomReset} />
             : (
               <button
                 onClick={handleZoomReset}
+                title="Fit the full trace into the timeline"
                 style={{
                   marginLeft: 'auto',
-                  background: 'none',
-                  border: `1px solid ${theme.borderColor}`,
+                  background: effectiveLiveMode ? 'none' : theme.rowFocusRing,
+                  border: `1px solid ${effectiveLiveMode ? theme.borderColor : theme.rowFocusRing}`,
                   borderRadius: 4,
                   padding: '1px 7px',
                   fontSize: 11,
-                  color: theme.spanNameColor,
+                  color: effectiveLiveMode ? theme.spanNameColor : '#fff',
                   cursor: 'pointer',
+                  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
                 }}
               >
-                Reset zoom
+                Fit
               </button>
             )
         )}
