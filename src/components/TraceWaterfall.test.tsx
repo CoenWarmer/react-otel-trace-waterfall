@@ -240,6 +240,30 @@ describe('TraceWaterfall', () => {
     expect(document.querySelector('[data-selected="true"]')).toBeInTheDocument();
   });
 
+  // ── onSpanHover ────────────────────────────────────────────────────────────
+
+  it('calls onSpanHover with the span when a row is hovered', () => {
+    const onSpanHover = vi.fn();
+    render(<TraceWaterfall spans={spans} onSpanHover={onSpanHover} />);
+
+    fireEvent.mouseEnter(screen.getByRole('row', { name: /root span/i }));
+
+    expect(onSpanHover).toHaveBeenCalledWith(
+      expect.objectContaining({ spanId: 'root', name: 'root span' })
+    );
+  });
+
+  it('calls onSpanHover(null) when the pointer leaves a row', () => {
+    const onSpanHover = vi.fn();
+    render(<TraceWaterfall spans={spans} onSpanHover={onSpanHover} />);
+
+    const row = screen.getByRole('row', { name: /root span/i });
+    fireEvent.mouseEnter(row);
+    fireEvent.mouseLeave(row);
+
+    expect(onSpanHover).toHaveBeenLastCalledWith(null);
+  });
+
   // ── allowZoom ──────────────────────────────────────────────────────────────
 
   it('hides Fit button when allowZoom=false', () => {

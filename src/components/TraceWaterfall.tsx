@@ -78,6 +78,8 @@ export interface TraceWaterfallProps {
   // ── Selection ──────────────────────────────────────────────────────────────
   /** Called whenever the selected span changes. Receives null when the selection is cleared. */
   onSelectSpan?: (span: SpanNode | null) => void;
+  /** Called when the pointer enters a span row. Receives null when the pointer leaves. */
+  onSpanHover?: (span: SpanNode | null) => void;
 
   // ── Custom components ──────────────────────────────────────────────────────
   /**
@@ -191,6 +193,7 @@ function TraceWaterfallInner({
   ZoomResetComponent,
   onZoomReset,
   onSelectSpan,
+  onSpanHover,
   SpanInspectComponent,
   RowPrefixComponent,
   SpanComponent,
@@ -412,6 +415,14 @@ function TraceWaterfallInner({
     setFocusedSpanId(spanId);
     pendingFocusRef.current = index;
     virtualizer.scrollToIndex(index, { align: 'auto' });
+  }
+
+  function handleHover(spanId: string) {
+    onSpanHover?.(spanMap.get(spanId) ?? null);
+  }
+
+  function handleHoverEnd() {
+    onSpanHover?.(null);
   }
 
   function handleCloseSpan() {
@@ -636,6 +647,8 @@ function TraceWaterfallInner({
                           aria-selected={isSelected}
                           tabIndex={isFocused ? 0 : -1}
                           onClick={() => select(row.span.spanId)}
+                          onMouseEnter={onSpanHover ? () => handleHover(row.span.spanId) : undefined}
+                          onMouseLeave={onSpanHover ? handleHoverEnd : undefined}
                           style={{ height: '100%', outline: 'none' }}
                         >
                           <SpanComponent
@@ -660,6 +673,8 @@ function TraceWaterfallInner({
                           RowPrefixComponent={RowPrefixComponent}
                           onToggle={toggle}
                           onSelect={select}
+                          onHover={onSpanHover ? handleHover : undefined}
+                          onHoverEnd={onSpanHover ? handleHoverEnd : undefined}
                         />
                       )
                     ) : (

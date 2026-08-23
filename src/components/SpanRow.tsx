@@ -65,10 +65,12 @@ export interface SpanRowProps {
   RowPrefixComponent?: React.ComponentType<RowPrefixProps>;
   onToggle: (spanId: string) => void;
   onSelect: (spanId: string) => void;
+  onHover?: (spanId: string) => void;
+  onHoverEnd?: () => void;
 }
 
 export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow(
-  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, onToggle, onSelect },
+  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, onToggle, onSelect, onHover, onHoverEnd },
   ref
 ) {
   const theme = useTheme();
@@ -104,6 +106,8 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
       aria-selected={isSelected}
       tabIndex={isFocused ? 0 : -1}
       onClick={() => onSelect(span.spanId)}
+      onMouseEnter={onHover ? () => onHover(span.spanId) : undefined}
+      onMouseLeave={onHoverEnd}
       style={{
         display: 'flex',
         alignItems: 'center',
