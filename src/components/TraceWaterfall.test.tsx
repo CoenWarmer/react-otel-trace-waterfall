@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TraceWaterfall } from './TraceWaterfall';
 import type { OtelSpan } from '../types';
-import type { SpanInspectProps, SpanComponentProps, ExpandComponentProps, RowPrefixProps } from './TraceWaterfall';
+import type { SpanInspectProps, SpanComponentProps, ExpandComponentProps, RowPrefixProps, SpanTooltipProps } from './TraceWaterfall';
 
 // ── Virtualizer mock ──────────────────────────────────────────────────────────
 // Renders all rows regardless of container height so tests don't need a live DOM layout.
@@ -238,6 +238,36 @@ describe('TraceWaterfall', () => {
     fireEvent.click(screen.getByRole('row', { name: /root span/i }));
 
     expect(document.querySelector('[data-selected="true"]')).toBeInTheDocument();
+  });
+
+  // ── TooltipComponent ───────────────────────────────────────────────────────
+
+  it('renders TooltipComponent when a row is hovered', () => {
+    const Tip = ({ span }: SpanTooltipProps) => (
+      <div data-testid="tooltip">{span.name}</div>
+    );
+    render(<TraceWaterfall spans={spans} TooltipComponent={Tip} />);
+
+    expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(screen.getByRole('row', { name: /root span/i }));
+
+    expect(screen.getByTestId('tooltip')).toBeInTheDocument();
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('root span');
+  });
+
+  it('hides TooltipComponent when pointer leaves the row', () => {
+    const Tip = ({ span }: SpanTooltipProps) => (
+      <div data-testid="tooltip">{span.name}</div>
+    );
+    render(<TraceWaterfall spans={spans} TooltipComponent={Tip} />);
+
+    const row = screen.getByRole('row', { name: /root span/i });
+    fireEvent.mouseEnter(row);
+    expect(screen.getByTestId('tooltip')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(row);
+    expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
   });
 
   // ── onSpanHover ────────────────────────────────────────────────────────────

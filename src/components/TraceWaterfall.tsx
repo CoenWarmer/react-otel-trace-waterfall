@@ -32,6 +32,11 @@ export interface SpanInspectProps {
   onClose: () => void;
 }
 
+/** Props received by a custom span tooltip. */
+export interface SpanTooltipProps {
+  span: SpanNode;
+}
+
 /** Props received by a custom span row component. */
 export interface SpanComponentProps {
   row: FlatRow;
@@ -80,6 +85,12 @@ export interface TraceWaterfallProps {
   onSelectSpan?: (span: SpanNode | null) => void;
   /** Called when the pointer enters a span row. Receives null when the pointer leaves. */
   onSpanHover?: (span: SpanNode | null) => void;
+  /**
+   * Custom tooltip rendered near the cursor while hovering over a span.
+   * The library handles positioning; the component only needs to provide content.
+   * Receives `{ span }`.
+   */
+  TooltipComponent?: React.ComponentType<SpanTooltipProps>;
 
   // ── Custom components ──────────────────────────────────────────────────────
   /**
@@ -194,6 +205,7 @@ function TraceWaterfallInner({
   onZoomReset,
   onSelectSpan,
   onSpanHover,
+  TooltipComponent,
   SpanInspectComponent,
   RowPrefixComponent,
   SpanComponent,
@@ -417,12 +429,22 @@ function TraceWaterfallInner({
     virtualizer.scrollToIndex(index, { align: 'auto' });
   }
 
+  const [hoveredSpan, setHoveredSpan] = useState<SpanNode | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
   function handleHover(spanId: string) {
-    onSpanHover?.(spanMap.get(spanId) ?? null);
+    const span = spanMap.get(spanId) ?? null;
+    if (TooltipComponent) setHoveredSpan(span);
+    onSpanHover?.(span);
   }
 
   function handleHoverEnd() {
+    if (TooltipComponent) setHoveredSpan(null);
     onSpanHover?.(null);
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (TooltipComponent) setTooltipPos({ x: e.clientX, y: e.clientY });
   }
 
   function handleCloseSpan() {
@@ -523,7 +545,10 @@ function TraceWaterfallInner({
   const InspectPanel = SpanInspectComponent ?? SpanDetail;
 
   return (
-    <div style={{ ...containerStyle, display: 'flex', flexDirection: 'column' }}>
+    <div
+      style={{ ...containerStyle, display: 'flex', flexDirection: 'column' }}
+      onMouseMove={TooltipComponent ? handleMouseMove : undefined}
+    >
       {/* Info bar */}
       <div
         style={{
@@ -647,8 +672,8 @@ function TraceWaterfallInner({
                           aria-selected={isSelected}
                           tabIndex={isFocused ? 0 : -1}
                           onClick={() => select(row.span.spanId)}
-                          onMouseEnter={onSpanHover ? () => handleHover(row.span.spanId) : undefined}
-                          onMouseLeave={onSpanHover ? handleHoverEnd : undefined}
+                          onMouseEnter={onSpanHover || TooltipComponent ? () => handleHover(row.span.spanId) : undefined}
+                          onMouseLeave={onSpanHover || TooltipComponent ? handleHoverEnd : undefined}
                           style={{ height: '100%', outline: 'none' }}
                         >
                           <SpanComponent
@@ -673,8 +698,8 @@ function TraceWaterfallInner({
                           RowPrefixComponent={RowPrefixComponent}
                           onToggle={toggle}
                           onSelect={select}
-                          onHover={onSpanHover ? handleHover : undefined}
-                          onHoverEnd={onSpanHover ? handleHoverEnd : undefined}
+                          onHover={onSpanHover || TooltipComponent ? handleHover : undefined}
+                          onHoverEnd={onSpanHover || TooltipComponent ? handleHoverEnd : undefined}
                         />
                       )
                     ) : (
@@ -710,6 +735,21 @@ function TraceWaterfallInner({
           <InspectPanel span={selectedSpan} onClose={handleCloseSpan} />
         )}
       </div>
+
+      {/* Tooltip overlay — fixed so it escapes overflow:hidden */}
+      {TooltipComponent && hoveredSpan && (
+        <div
+          style={{
+            position: 'fixed',
+            left: tooltipPos.x + 14,
+            top: tooltipPos.y + 14,
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        >
+          <TooltipComponent span={hoveredSpan} />
+        </div>
+      )}
     </div>
   );
 }

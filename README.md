@@ -38,6 +38,7 @@ Built on:
 | `onZoomReset`             | `() => void`                          | —               | Called alongside zoom reset                                              |
 | `onSelectSpan`            | `(span: SpanNode \| null) => void`    | —               | Called on selection change, `null` on deselect                           |
 | `onSpanHover`             | `(span: SpanNode \| null) => void`    | —               | Called on row pointer-enter; `null` on pointer-leave                     |
+| `TooltipComponent`        | `ComponentType<SpanTooltipProps>`     | —               | Rendered near the cursor while hovering; receives `{ span }`             |
 | `SpanInspectComponent`    | `ComponentType<SpanInspectProps>`     | `SpanDetail`    | Receives `{ span, onClose }`                                             |
 | `RowPrefixComponent`      | `ComponentType<RowPrefixProps>`       | —               | Rendered before every row label; receives `{ row, isSelected, isNew }`   |
 | `SpanComponent`           | `ComponentType<SpanComponentProps>`   | `SpanRow`       | Full row replacement; wrapped for a11y                                   |
