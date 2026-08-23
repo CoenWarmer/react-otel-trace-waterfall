@@ -10,7 +10,7 @@ import { useContainerWidth } from '../hooks/useContainerWidth';
 import type { ZoomDomain } from '../hooks/useZoomPan';
 import { useZoomPan } from '../hooks/useZoomPan';
 import { SpanRow, LABEL_WIDTH, ROW_HEIGHT, BAR_HEIGHT } from './SpanRow';
-import type { ExpandComponentProps } from './SpanRow';
+import type { ExpandComponentProps, RowPrefixProps } from './SpanRow';
 import { TimeAxis } from './TimeAxis';
 import { SpanDetail } from './SpanDetail';
 import { ThemeContext, useTheme } from '../ThemeContext';
@@ -43,7 +43,7 @@ export interface SpanComponentProps {
   onSelect: (spanId: string) => void;
 }
 
-export type { ExpandComponentProps };
+export type { ExpandComponentProps, RowPrefixProps };
 
 export interface TraceWaterfallProps {
   spans: OtelSpan[];
@@ -85,6 +85,12 @@ export interface TraceWaterfallProps {
    * Receives `{ span, onClose }`.
    */
   SpanInspectComponent?: React.ComponentType<SpanInspectProps>;
+  /**
+   * Rendered at the leading edge of every row, before the span label.
+   * Useful for status icons, action buttons, or per-row badges.
+   * Receives `{ row, isSelected, isNew }`.
+   */
+  RowPrefixComponent?: React.ComponentType<RowPrefixProps>;
   /**
    * Replaces SpanRow for every row in the list.
    * Rendered inside a focus-managing wrapper so a11y/keyboard nav keeps working.
@@ -186,6 +192,7 @@ function TraceWaterfallInner({
   onZoomReset,
   onSelectSpan,
   SpanInspectComponent,
+  RowPrefixComponent,
   SpanComponent,
   onCloseSpan,
   SkeletonComponent,
@@ -650,6 +657,7 @@ function TraceWaterfallInner({
                           isFocused={isFocused}
                           isNew={isNew}
                           ExpandComponent={ExpandComponent}
+                          RowPrefixComponent={RowPrefixComponent}
                           onToggle={toggle}
                           onSelect={select}
                         />

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TraceWaterfall } from './TraceWaterfall';
 import type { OtelSpan } from '../types';
-import type { SpanInspectProps, SpanComponentProps, ExpandComponentProps } from './TraceWaterfall';
+import type { SpanInspectProps, SpanComponentProps, ExpandComponentProps, RowPrefixProps } from './TraceWaterfall';
 
 // ── Virtualizer mock ──────────────────────────────────────────────────────────
 // Renders all rows regardless of container height so tests don't need a live DOM layout.
@@ -127,6 +127,30 @@ describe('TraceWaterfall', () => {
     render(<TraceWaterfall spans={spans} ExpandComponent={Expand} />);
     fireEvent.click(screen.getByTestId('custom-expand'));
     expect(screen.getByText('child A')).toBeInTheDocument();
+  });
+
+  // ── RowPrefixComponent ─────────────────────────────────────────────────────
+
+  it('renders RowPrefixComponent before each visible row', () => {
+    const Prefix = ({ row }: RowPrefixProps) => (
+      <span data-testid="prefix">{row.span.name}</span>
+    );
+    render(<TraceWaterfall spans={spans} RowPrefixComponent={Prefix} />);
+    // Only root is visible by default
+    const prefixes = screen.getAllByTestId('prefix');
+    expect(prefixes).toHaveLength(1);
+    expect(prefixes[0]).toHaveTextContent('root span');
+  });
+
+  it('RowPrefixComponent receives isSelected=true when span is selected', () => {
+    const Prefix = ({ isSelected }: RowPrefixProps) => (
+      <span data-testid="prefix" data-selected={String(isSelected)} />
+    );
+    render(<TraceWaterfall spans={spans} RowPrefixComponent={Prefix} />);
+
+    expect(screen.getByTestId('prefix')).toHaveAttribute('data-selected', 'false');
+    fireEvent.click(screen.getByText('root span'));
+    expect(screen.getByTestId('prefix')).toHaveAttribute('data-selected', 'true');
   });
 
   // ── onSelectSpan ───────────────────────────────────────────────────────────

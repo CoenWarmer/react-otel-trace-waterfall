@@ -38,6 +38,13 @@ export interface ExpandComponentProps {
   onToggle: () => void;
 }
 
+/** Props passed to a component rendered at the leading edge of every row. */
+export interface RowPrefixProps {
+  row: FlatRow;
+  isSelected: boolean;
+  isNew: boolean;
+}
+
 export interface SpanRowProps {
   row: FlatRow;
   scale: TimeScale;
@@ -50,12 +57,18 @@ export interface SpanRowProps {
    * Receives `{ isExpanded, hasChildren, onToggle }`.
    */
   ExpandComponent?: React.ComponentType<ExpandComponentProps>;
+  /**
+   * Rendered at the leading edge of every row, before the label column.
+   * Useful for status icons, action buttons, or per-row badges.
+   * Receives `{ row, isSelected, isNew }`.
+   */
+  RowPrefixComponent?: React.ComponentType<RowPrefixProps>;
   onToggle: (spanId: string) => void;
   onSelect: (spanId: string) => void;
 }
 
 export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow(
-  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, onToggle, onSelect },
+  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, onToggle, onSelect },
   ref
 ) {
   const theme = useTheme();
@@ -103,6 +116,11 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
         ...newRowStyle,
       }}
     >
+      {/* Optional prefix slot */}
+      {RowPrefixComponent && (
+        <RowPrefixComponent row={row} isSelected={isSelected} isNew={isNew} />
+      )}
+
       {/* Label column */}
       <div
         role="rowheader"
