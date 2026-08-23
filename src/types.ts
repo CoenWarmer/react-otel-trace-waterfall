@@ -4,7 +4,8 @@ export type SpanKind =
   | 'SERVER'
   | 'CLIENT'
   | 'PRODUCER'
-  | 'CONSUMER';
+  | 'CONSUMER'
+  | 'EVENT';
 
 export type SpanStatusCode = 'UNSET' | 'OK' | 'ERROR';
 
