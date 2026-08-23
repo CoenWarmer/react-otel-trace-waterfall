@@ -240,6 +240,24 @@ describe('TraceWaterfall', () => {
     expect(document.querySelector('[data-selected="true"]')).toBeInTheDocument();
   });
 
+  // ── disableInspectPanel ────────────────────────────────────────────────────
+
+  it('does not show the inspect panel when disableInspectPanel=true', () => {
+    render(<TraceWaterfall spans={spans} disableInspectPanel />);
+    fireEvent.click(screen.getByText('root span'));
+    // SpanDetail renders the span name as a heading — should not appear
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+  });
+
+  it('still fires onSelectSpan when disableInspectPanel=true', async () => {
+    const onSelectSpan = vi.fn();
+    render(<TraceWaterfall spans={spans} disableInspectPanel onSelectSpan={onSelectSpan} />);
+    fireEvent.click(screen.getByText('root span'));
+    await waitFor(() =>
+      expect(onSelectSpan).toHaveBeenCalledWith(expect.objectContaining({ spanId: 'root' }))
+    );
+  });
+
   // ── TooltipComponent ───────────────────────────────────────────────────────
 
   it('renders TooltipComponent when a row is hovered', () => {

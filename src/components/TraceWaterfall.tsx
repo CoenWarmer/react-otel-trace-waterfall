@@ -129,6 +129,8 @@ export interface TraceWaterfallProps {
   // ── Keyboard ───────────────────────────────────────────────────────────────
   /** Disable arrow-key / Home / End keyboard navigation. Default false. */
   disableKeyboardControls?: boolean;
+  /** Hide the built-in span detail panel entirely. onSelectSpan still fires on click. */
+  disableInspectPanel?: boolean;
 
   // ── Tree expansion ─────────────────────────────────────────────────────────
   /**
@@ -214,6 +216,7 @@ function TraceWaterfallInner({
   liveMode,
   onLiveModeChange,
   disableKeyboardControls = false,
+  disableInspectPanel = false,
   initialState = 'collapsed',
   ExpandComponent,
 }: TraceWaterfallProps) {
@@ -731,7 +734,7 @@ function TraceWaterfallInner({
         </div>
 
         {/* Inspect / detail panel */}
-        {selectedSpan && (
+        {selectedSpan && !disableInspectPanel && (
           <InspectPanel span={selectedSpan} onClose={handleCloseSpan} />
         )}
       </div>

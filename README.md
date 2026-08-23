@@ -44,6 +44,7 @@ Built on:
 | `SpanComponent`           | `ComponentType<SpanComponentProps>`   | `SpanRow`       | Full row replacement; wrapped for a11y                                   |
 | `onCloseSpan`             | `() => void`                          | —               | Called when detail panel closes                                          |
 | `SkeletonComponent`       | `ComponentType`                       | built-in        | No props                                                                 |
+| `disableInspectPanel`     | `boolean`                             | `false`         | Hides the built-in detail panel; `onSelectSpan` still fires on click     |
 | `disableKeyboardControls` | `boolean`                             | `false`         |                                                                          |
 | `initialState`            | `'collapsed' \| 'expanded'`           | `'collapsed'`   | Seeds initial expandedIds                                                |
 | `ExpandComponent`         | `ComponentType<ExpandComponentProps>` | ▸/▾ button      | Ignored when `SpanComponent` is set                                      |
