@@ -43,11 +43,23 @@ export function useZoomPan(
   // Start in following mode only when no explicit initial domain was supplied.
   const [isFollowing, setIsFollowing] = useState(!initialDomain);
 
+  // Mirror current domain into a ref so the effect below can read it without
+  // needing it as a dependency (avoids firing on every zoom/pan interaction).
+  const domainRef = useRef(domain);
+  domainRef.current = domain;
+
   // While following, keep domain in sync as trace bounds grow (live traces).
-  // Once the user zooms or pans, isFollowing becomes false and this effect is skipped.
+  // When not following, auto-reset if the trace has shifted so far that the
+  // current domain no longer overlaps at all (e.g. a completely new trace loaded).
   useEffect(() => {
     if (isFollowing) {
       setDomain({ start: traceStart, end: traceEnd });
+    } else {
+      const d = domainRef.current;
+      if (d.end < traceStart || d.start > traceEnd) {
+        setIsFollowing(true);
+        setDomain({ start: traceStart, end: traceEnd });
+      }
     }
   }, [traceStart, traceEnd, isFollowing]);
 

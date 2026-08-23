@@ -40,15 +40,49 @@ describe('useZoomPan', () => {
     expect(result.current.isFollowing).toBe(true);
   });
 
-  it('does not update domain when not following and trace grows', () => {
+  it('does not update domain when not following and trace grows within overlap', () => {
     let traceEnd = END;
     const { result, rerender } = renderHook(() => useZoomPan(START, traceEnd));
 
     act(() => result.current.stopFollowing());
-    traceEnd = 2_000_000;
+    traceEnd = 2_000_000; // grows, but current domain still overlaps
     rerender();
 
     expect(result.current.domain.end).toBe(END); // locked
+    expect(result.current.isFollowing).toBe(false);
+  });
+
+  it('auto-resets to following when not following and trace moves entirely past the domain', () => {
+    let traceStart = START;
+    let traceEnd = END;
+    const { result, rerender } = renderHook(() => useZoomPan(traceStart, traceEnd));
+
+    act(() => result.current.stopFollowing());
+
+    // Trace jumps to a completely new range with no overlap
+    traceStart = 10_000_000;
+    traceEnd   = 20_000_000;
+    rerender();
+
+    expect(result.current.isFollowing).toBe(true);
+    expect(result.current.domain).toEqual({ start: 10_000_000, end: 20_000_000 });
+  });
+
+  it('auto-resets when trace shifts to the left of the current domain', () => {
+    // Start fully zoomed in on the right side of the trace
+    const initial = { start: 800_000, end: END };
+    let traceStart = START;
+    let traceEnd = END;
+    const { result, rerender } = renderHook(() => useZoomPan(traceStart, traceEnd, initial));
+    // isFollowing is false due to initialDomain
+
+    // Trace completely replaces itself with an earlier range that doesn't overlap
+    traceStart = -5_000_000;
+    traceEnd   = -1_000_000;
+    rerender();
+
+    expect(result.current.isFollowing).toBe(true);
+    expect(result.current.domain).toEqual({ start: -5_000_000, end: -1_000_000 });
   });
 
   // ── Zoom ───────────────────────────────────────────────────────────────────
