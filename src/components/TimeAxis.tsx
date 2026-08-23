@@ -31,7 +31,8 @@ export function TimeAxis({ scale }: TimeAxisProps) {
   const [domainStart, domainEnd] = scale.domain();
   const spanNs = domainEnd - domainStart;
   const unit = pickUnit(spanNs);
-  const ticks = scale.ticks(6);
+  // Filter out d3 ticks that fall within 30px of x=0 so the explicit "0" label doesn't collide.
+  const ticks = scale.ticks(6).filter((t) => scale(t) > 30);
 
   return (
     <div
@@ -43,6 +44,14 @@ export function TimeAxis({ scale }: TimeAxisProps) {
         flexShrink: 0,
       }}
     >
+      {/* Always-visible "0" at the left edge */}
+      <div style={{ position: 'absolute', left: 0, top: 0 }}>
+        <div style={{ width: 1, height: 5, backgroundColor: theme.axisTickColor, margin: '0 auto' }} />
+        <div style={{ fontSize: 10, color: theme.axisLabelColor, whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+          0
+        </div>
+      </div>
+
       {ticks.map((tick) => {
         const x = scale(tick);
         const label = formatInUnit(tick - domainStart, unit);
