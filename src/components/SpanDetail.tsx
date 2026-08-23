@@ -14,6 +14,7 @@ const KIND_COLORS: Record<SpanKind, { bg: string; text: string }> = {
   PRODUCER:    { bg: '#fffaf0', text: '#c05621' },
   CONSUMER:    { bg: '#faf5ff', text: '#6b46c1' },
   UNSPECIFIED: { bg: '#f7fafc', text: '#718096' },
+  EVENT:       { bg: '#fffff0', text: '#975a16' },
 };
 
 const STATUS_COLORS: Record<SpanStatusCode, { bg: string; text: string; dot: string }> = {
