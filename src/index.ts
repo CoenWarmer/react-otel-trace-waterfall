@@ -2,6 +2,7 @@ export { TraceWaterfall } from './components/TraceWaterfall';
 export type {
   TraceWaterfallProps,
   ZoomResetProps,
+  FitButtonProps,
   SpanInspectProps,
   SpanComponentProps,
   ExpandComponentProps,

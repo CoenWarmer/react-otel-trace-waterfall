@@ -228,7 +228,28 @@ describe('TraceWaterfall', () => {
     expect(screen.getByText('Fit')).toBeInTheDocument();
   });
 
-  // ── ZoomResetComponent ─────────────────────────────────────────────────────
+  // ── FitButtonComponent ─────────────────────────────────────────────────────
+
+  it('renders FitButtonComponent instead of built-in Fit button', () => {
+    const FitBtn = ({ onClick }: { onClick: () => void }) => (
+      <button data-testid="custom-fit" onClick={onClick}>My fit</button>
+    );
+    render(<TraceWaterfall spans={spans} FitButtonComponent={FitBtn} />);
+    expect(screen.getByTestId('custom-fit')).toBeInTheDocument();
+    expect(screen.queryByText('Fit')).not.toBeInTheDocument();
+  });
+
+  it('FitButtonComponent onClick resets zoom', async () => {
+    const onZoomReset = vi.fn();
+    const FitBtn = ({ onClick }: { onClick: () => void }) => (
+      <button data-testid="custom-fit" onClick={onClick}>fit</button>
+    );
+    render(<TraceWaterfall spans={spans} FitButtonComponent={FitBtn} onZoomReset={onZoomReset} />);
+    fireEvent.click(screen.getByTestId('custom-fit'));
+    await waitFor(() => expect(onZoomReset).toHaveBeenCalledTimes(1));
+  });
+
+  // ── ZoomResetComponent (backward compat) ────────────────────────────────────
 
   it('renders ZoomResetComponent instead of built-in Fit button', () => {
     const Reset = ({ onClick }: { onClick: () => void }) => (
@@ -237,6 +258,18 @@ describe('TraceWaterfall', () => {
     render(<TraceWaterfall spans={spans} ZoomResetComponent={Reset} />);
     expect(screen.getByTestId('custom-reset')).toBeInTheDocument();
     expect(screen.queryByText('Fit')).not.toBeInTheDocument();
+  });
+
+  it('FitButtonComponent takes priority over ZoomResetComponent', () => {
+    const FitBtn = ({ onClick }: { onClick: () => void }) => (
+      <button data-testid="fit-btn" onClick={onClick}>fit</button>
+    );
+    const Reset = ({ onClick }: { onClick: () => void }) => (
+      <button data-testid="reset-btn" onClick={onClick}>reset</button>
+    );
+    render(<TraceWaterfall spans={spans} FitButtonComponent={FitBtn} ZoomResetComponent={Reset} />);
+    expect(screen.getByTestId('fit-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('reset-btn')).not.toBeInTheDocument();
   });
 
   it('onZoomReset is called when the Fit button is clicked', async () => {

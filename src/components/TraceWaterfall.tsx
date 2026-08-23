@@ -18,10 +18,13 @@ import { defaultTheme, type ThemeTokens } from '../theme';
 
 // ── Public prop-interface types ──────────────────────────────────────────────
 
-/** Props received by a custom zoom-reset control. */
+/** Props received by a custom zoom-reset / fit-to-width control. */
 export interface ZoomResetProps {
   onClick: () => void;
 }
+
+/** Props received by a custom "Fit" button component. */
+export type FitButtonProps = ZoomResetProps;
 
 /** Props received by a custom span detail/inspect panel. */
 export interface SpanInspectProps {
@@ -60,11 +63,16 @@ export interface TraceWaterfallProps {
    */
   zoomLevel?: number;
   /**
-   * Replaces the built-in "Reset zoom" button shown when the user has zoomed/panned.
+   * Replaces the built-in "Fit" button in the info bar.
    * Receives `{ onClick }` which resets the zoom and re-enables following mode.
    */
+  FitButtonComponent?: React.ComponentType<ZoomResetProps>;
+  /**
+   * @deprecated Use FitButtonComponent instead.
+   * Replaces the built-in "Fit" button. Kept for backward compatibility.
+   */
   ZoomResetComponent?: React.ComponentType<ZoomResetProps>;
-  /** Called whenever the zoom/pan is reset (by built-in button or ZoomResetComponent). */
+  /** Called whenever the zoom/pan is reset (by built-in button or FitButtonComponent). */
   onZoomReset?: () => void;
 
   // ── Selection ──────────────────────────────────────────────────────────────
@@ -173,6 +181,7 @@ function TraceWaterfallInner({
   loading = false,
   allowZoom = true,
   zoomLevel,
+  FitButtonComponent,
   ZoomResetComponent,
   onZoomReset,
   onSelectSpan,
@@ -515,9 +524,10 @@ function TraceWaterfallInner({
         <span>·</span>
         <span>{rows.length} visible</span>
         {selectedSpan && (<><span>·</span><span style={{ color: theme.rowFocusRing }}>{selectedSpan.name}</span></>)}
-        {allowZoom && (
-          ZoomResetComponent
-            ? <ZoomResetComponent onClick={handleZoomReset} />
+        {allowZoom && (() => {
+          const CustomFit = FitButtonComponent ?? ZoomResetComponent;
+          return CustomFit
+            ? <CustomFit onClick={handleZoomReset} />
             : (
               <button
                 onClick={handleZoomReset}
@@ -536,8 +546,8 @@ function TraceWaterfallInner({
               >
                 Fit
               </button>
-            )
-        )}
+            );
+        })()}
       </div>
 
       {/* Main area */}
