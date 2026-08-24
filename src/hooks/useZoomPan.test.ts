@@ -1,6 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useZoomPan } from './useZoomPan';
+
+// Make rAF fire synchronously with a timestamp far beyond any transition duration
+// so animation callbacks always land at rawT = 1 (final frame) within the same act() pass.
+beforeEach(() => {
+  vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+    cb(performance.now() + 10_000);
+    return 1;
+  });
+  vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+});
+afterEach(() => vi.restoreAllMocks());
 
 const START = 0;
 const END = 1_000_000; // 1 ms in nanoseconds

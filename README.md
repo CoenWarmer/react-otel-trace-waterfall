@@ -34,6 +34,8 @@ Built on:
 | `height`                  | `number \| string`                     | `'400px'`       |                                                                           |
 | `initialState`            | `'collapsed' \| 'expanded'`            | `'collapsed'`   | Seeds initial expandedIds                                                 |
 | `liveMode`                | `boolean`                              | internal        | When provided, controls following mode; omit to let component manage it   |
+| `liveUpdateDuration`      | `number`                               | `300`           | Animation duration in ms when live mode receives new bounds; `0` to snap  |
+| `liveUpdateEasing`        | `(t: number) => number`                | `easeOutCubic`  | Easing for the live update animation; see exported `easeOutCubic`         |
 | `loading`                 | `boolean`                              | `false`         |                                                                           |
 | `onCloseSpan`             | `() => void`                           | —               | Called when detail panel closes                                           |
 | `onLiveModeChange`        | `(isLive: boolean) => void`            | —               | Fires when the user zooms (→ false) or resets (→ true)                    |

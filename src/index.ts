@@ -15,8 +15,8 @@ export { buildSpanTree } from './utils/buildSpanTree';
 export { flattenTree } from './utils/flattenTree';
 export { getTraceDomain, buildTimeScale, formatNanoDuration, nanoToDate } from './utils/timeScale';
 export type { TimeScale } from './utils/timeScale';
-export { useZoomPan } from './hooks/useZoomPan';
-export type { ZoomDomain, UseZoomPanResult } from './hooks/useZoomPan';
+export { useZoomPan, easeOutCubic } from './hooks/useZoomPan';
+export type { ZoomDomain, UseZoomPanResult, UseZoomPanOptions } from './hooks/useZoomPan';
 export { defaultTheme, darkTheme } from './theme';
 export type { ThemeTokens } from './theme';
 export type {

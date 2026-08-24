@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
+/** Cubic ease-out — fast start, smooth deceleration. */
+export const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
+
 export interface ZoomDomain {
   start: number;
   end: number;
@@ -26,17 +29,39 @@ export interface UseZoomPanResult {
   endDrag: () => void;
 }
 
+export interface UseZoomPanOptions {
+  initialDomain?: ZoomDomain;
+  /**
+   * Duration in ms for the animated zoom when following mode receives new trace bounds.
+   * Set to 0 to snap immediately. Default: 300.
+   */
+  transitionDuration?: number;
+  /**
+   * Easing function for the live-update animation. Receives and returns t ∈ [0, 1].
+   * Default: easeOutCubic.
+   */
+  transitionEasing?: (t: number) => number;
+}
+
 /**
  * @param traceStart - Trace start time in nanoseconds.
  * @param traceEnd   - Trace end time in nanoseconds.
  * @param initialDomain - Optional domain to use as the initial view instead of the full trace.
  *                        When provided, `isFollowing` starts as false.
+ * @deprecated Pass options as the third argument object instead.
  */
+export function useZoomPan(traceStart: number, traceEnd: number, initialDomain?: ZoomDomain): UseZoomPanResult;
+export function useZoomPan(traceStart: number, traceEnd: number, options?: UseZoomPanOptions): UseZoomPanResult;
 export function useZoomPan(
   traceStart: number,
   traceEnd: number,
-  initialDomain?: ZoomDomain,
+  thirdArg?: ZoomDomain | UseZoomPanOptions,
 ): UseZoomPanResult {
+  // Accept either the legacy (initialDomain) positional form or the new options object.
+  const options: UseZoomPanOptions = thirdArg && 'start' in thirdArg
+    ? { initialDomain: thirdArg as ZoomDomain }
+    : (thirdArg as UseZoomPanOptions | undefined) ?? {};
+  const { initialDomain, transitionDuration = 300, transitionEasing = easeOutCubic } = options;
   const [domain, setDomain] = useState<ZoomDomain>(
     initialDomain ?? { start: traceStart, end: traceEnd }
   );
@@ -48,12 +73,48 @@ export function useZoomPan(
   const domainRef = useRef(domain);
   domainRef.current = domain;
 
+  // rAF animation handle — cancelled on user interaction or when a new animation starts.
+  const animFrameRef = useRef<number | null>(null);
+
+  function cancelAnimation() {
+    if (animFrameRef.current !== null) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+  }
+
+  function animateTo(from: ZoomDomain, to: ZoomDomain) {
+    cancelAnimation();
+    if (transitionDuration <= 0) {
+      setDomain(to);
+      return;
+    }
+    const startTime = performance.now();
+    function step(now: number) {
+      const rawT = Math.min((now - startTime) / transitionDuration, 1);
+      const t = transitionEasing(rawT);
+      setDomain({
+        start: from.start + (to.start - from.start) * t,
+        end:   from.end   + (to.end   - from.end)   * t,
+      });
+      if (rawT < 1) {
+        animFrameRef.current = requestAnimationFrame(step);
+      } else {
+        animFrameRef.current = null;
+      }
+    }
+    animFrameRef.current = requestAnimationFrame(step);
+  }
+
   // While following, keep domain in sync as trace bounds grow (live traces).
   // When not following, auto-reset if the trace has shifted so far that the
   // current domain no longer overlaps at all (e.g. a completely new trace loaded).
   useEffect(() => {
     if (isFollowing) {
-      setDomain({ start: traceStart, end: traceEnd });
+      const target = { start: traceStart, end: traceEnd };
+      const cur = domainRef.current;
+      if (cur.start === target.start && cur.end === target.end) return;
+      animateTo(cur, target);
     } else {
       const d = domainRef.current;
       if (d.end < traceStart || d.start > traceEnd) {
@@ -61,11 +122,12 @@ export function useZoomPan(
         setDomain({ start: traceStart, end: traceEnd });
       }
     }
-  }, [traceStart, traceEnd, isFollowing]);
+  }, [traceStart, traceEnd, isFollowing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dragRef = useRef<{ clientX: number; domainSnapshot: ZoomDomain } | null>(null);
 
   function onWheel(cursorX: number, widthPx: number, deltaY: number) {
+    cancelAnimation();
     setIsFollowing(false);
     const factor = deltaY > 0 ? 1.15 : 0.85;
     setDomain((prev) => {
@@ -84,6 +146,7 @@ export function useZoomPan(
   }
 
   function startDrag(clientX: number) {
+    cancelAnimation();
     setIsFollowing(false);
     dragRef.current = { clientX, domainSnapshot: domain };
   }

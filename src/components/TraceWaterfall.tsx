@@ -131,6 +131,16 @@ export interface TraceWaterfallProps {
   liveMode?: boolean;
   /** Called when live mode changes — use this to keep external state in sync. */
   onLiveModeChange?: (isLive: boolean) => void;
+  /**
+   * Duration in ms of the animated transition when live mode receives new trace bounds.
+   * Set to 0 to snap immediately. Default: 300.
+   */
+  liveUpdateDuration?: number;
+  /**
+   * Easing function for the live update animation. Receives and returns t ∈ [0, 1].
+   * Default: easeOutCubic (exported from the package).
+   */
+  liveUpdateEasing?: (t: number) => number;
 
   // ── Keyboard ───────────────────────────────────────────────────────────────
   /** Disable arrow-key / Home / End keyboard navigation. Default false. */
@@ -222,6 +232,8 @@ function TraceWaterfallInner({
   SkeletonComponent,
   liveMode,
   onLiveModeChange,
+  liveUpdateDuration,
+  liveUpdateEasing,
   disableKeyboardControls = false,
   disableInspectPanel = false,
   initialState = 'collapsed',
@@ -293,7 +305,11 @@ function TraceWaterfallInner({
   const { domain, isFollowing, follow, stopFollowing, onWheel, startDrag, moveDrag, endDrag } = useZoomPan(
     traceDomain?.[0] ?? 0,
     traceDomain?.[1] ?? 1,
-    zoomInitialDomainRef.current,
+    {
+      initialDomain: zoomInitialDomainRef.current,
+      transitionDuration: liveUpdateDuration,
+      transitionEasing: liveUpdateEasing,
+    },
   );
 
   // Controlled liveMode: when the prop is provided, sync internal following state to it.
