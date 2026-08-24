@@ -628,7 +628,7 @@ function TraceWaterfallInner({
               onPointerUp={() => { setIsDragging(false); endDrag(); }}
               onPointerCancel={() => { setIsDragging(false); endDrag(); }}
             >
-              {scale && <TimeAxis scale={scale} />}
+              {scale && traceDomain && <TimeAxis scale={scale} traceStart={traceDomain[0]} />}
             </div>
           </div>
 

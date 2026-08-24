@@ -24,15 +24,23 @@ function formatInUnit(ns: number, unit: AxisUnit): string {
 
 interface TimeAxisProps {
   scale: TimeScale;
+  /** Absolute nanosecond timestamp of the trace start (used to anchor the "0" label). */
+  traceStart: number;
 }
 
-export function TimeAxis({ scale }: TimeAxisProps) {
+export function TimeAxis({ scale, traceStart }: TimeAxisProps) {
   const theme = useTheme();
   const [domainStart, domainEnd] = scale.domain();
   const spanNs = domainEnd - domainStart;
   const unit = pickUnit(spanNs);
-  // Filter out d3 ticks that fall within 30px of x=0 so the explicit "0" label doesn't collide.
-  const ticks = scale.ticks(6).filter((t) => scale(t) > 30);
+
+  // Position of the trace-start tick in pixels. Only render when it's inside the visible range.
+  const x0 = scale(traceStart);
+  const [, rangeEnd] = scale.range();
+  const showZero = x0 >= 0 && x0 <= rangeEnd;
+
+  // Suppress d3 ticks that would overlap the "0" label.
+  const ticks = scale.ticks(6).filter((t) => !showZero || Math.abs(scale(t) - x0) > 30);
 
   return (
     <div
@@ -44,13 +52,15 @@ export function TimeAxis({ scale }: TimeAxisProps) {
         flexShrink: 0,
       }}
     >
-      {/* Always-visible "0" at the left edge */}
-      <div style={{ position: 'absolute', left: 0, top: 0 }}>
-        <div style={{ width: 1, height: 5, backgroundColor: theme.axisTickColor, margin: '0 auto' }} />
-        <div style={{ fontSize: 10, color: theme.axisLabelColor, whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-          0
+      {/* "0" anchored at the trace start — hidden when panned out of view */}
+      {showZero && (
+        <div style={{ position: 'absolute', left: x0, top: 0 }}>
+          <div style={{ width: 1, height: 5, backgroundColor: theme.axisTickColor, margin: '0 auto' }} />
+          <div style={{ fontSize: 10, color: theme.axisLabelColor, whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+            0
+          </div>
         </div>
-      </div>
+      )}
 
       {ticks.map((tick) => {
         const x = scale(tick);
