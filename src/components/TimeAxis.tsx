@@ -1,3 +1,4 @@
+import { scaleLinear } from 'd3-scale';
 import type { TimeScale } from '../utils/timeScale';
 import { useTheme } from '../ThemeContext';
 
@@ -39,8 +40,12 @@ export function TimeAxis({ scale, traceStart }: TimeAxisProps) {
   const [, rangeEnd] = scale.range();
   const showZero = x0 >= 0 && x0 <= rangeEnd;
 
-  // Suppress d3 ticks that would overlap the "0" label.
-  const ticks = scale.ticks(6).filter((t) => !showZero || Math.abs(scale(t) - x0) > 30);
+  // Generate ticks in relative elapsed-ns space [0, spanNs] to avoid float-precision issues
+  // with the huge absolute nanosecond Unix timestamps used in the domain (>Number.MAX_SAFE_INTEGER).
+  const relScale = scaleLinear().domain([0, spanNs]).range([0, rangeEnd]);
+  const relativeTicks = relScale.ticks(6).filter(
+    (dt) => !showZero || Math.abs(relScale(dt) - x0) > 30
+  );
 
   return (
     <div
@@ -62,12 +67,12 @@ export function TimeAxis({ scale, traceStart }: TimeAxisProps) {
         </div>
       )}
 
-      {ticks.map((tick) => {
-        const x = scale(tick);
-        const label = formatInUnit(tick - domainStart, unit);
+      {relativeTicks.map((dt) => {
+        const x = relScale(dt);
+        const label = formatInUnit(dt, unit);
         return (
           <div
-            key={tick}
+            key={dt}
             style={{ position: 'absolute', left: x, top: 0, transform: 'translateX(-50%)' }}
           >
             <div style={{ width: 1, height: 5, backgroundColor: theme.axisTickColor, margin: '0 auto' }} />
