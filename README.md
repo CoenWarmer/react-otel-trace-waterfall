@@ -48,6 +48,7 @@ Built on:
 | `SpanInspectComponent`    | `ComponentType<SpanInspectProps>`      | `SpanDetail`    | Receives `{ span, onClose }`                                              |
 | `spans`                   | `OtelSpan[]`                           | required        |                                                                           |
 | `theme`                   | `Partial<ThemeTokens>`                 | `defaultTheme`  |                                                                           |
+| `timelinePadding`         | `number`                               | `0`             | Pixels of padding on each side of the fitted view; keeps edge spans clear |
 | `TooltipComponent`        | `ComponentType<SpanTooltipProps>`      | —               | Rendered near the cursor while hovering; receives `{ span }`              |
 | `zoomLevel`               | `number`                               | `1`             | Initial zoom factor from trace centre; > 1 starts locked (not following)  |
 | `ZoomResetComponent`      | `ComponentType<ZoomResetProps>`        | built-in button | Deprecated — use `FitButtonComponent` instead                             |

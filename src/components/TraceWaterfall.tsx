@@ -63,6 +63,11 @@ export interface TraceWaterfallProps {
   /** Enable wheel-to-zoom and drag-to-pan on the time axis. Default true. */
   allowZoom?: boolean;
   /**
+   * Padding added to each side of the timeline when it is fitted to the trace bounds, in pixels.
+   * Prevents spans at the edges from touching the container border. Default 0.
+   */
+  timelinePadding?: number;
+  /**
    * Initial zoom factor. 1 = full trace view (default). 2 = 2× zoom in from the trace centre.
    * Acts as an initial value only — the user can zoom freely after mount.
    */
@@ -217,6 +222,7 @@ function TraceWaterfallInner({
   height = '400px',
   loading = false,
   allowZoom = true,
+  timelinePadding = 0,
   zoomLevel,
   FitButtonComponent,
   ZoomResetComponent,
@@ -301,10 +307,16 @@ function TraceWaterfallInner({
 
   const [timelineRef, timelineWidth] = useContainerWidth();
 
+  // Convert timelinePadding (px) to nanoseconds based on the current trace span and container width.
+  // Falls back to 0 until the container is measured. Recalculates when the trace grows or resizes.
+  const paddingNs = timelinePadding > 0 && traceDomain && timelineWidth > 0
+    ? timelinePadding * (traceDomain[1] - traceDomain[0]) / timelineWidth
+    : 0;
+
   // FIX 1: isFollowing mode — domain auto-extends while user hasn't interacted.
   const { domain, isFollowing, follow, stopFollowing, onWheel, startDrag, moveDrag, endDrag } = useZoomPan(
-    traceDomain?.[0] ?? 0,
-    traceDomain?.[1] ?? 1,
+    (traceDomain?.[0] ?? 0) - paddingNs,
+    (traceDomain?.[1] ?? 1) + paddingNs,
     {
       initialDomain: zoomInitialDomainRef.current,
       transitionDuration: liveUpdateDuration,
