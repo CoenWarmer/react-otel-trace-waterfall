@@ -51,16 +51,36 @@ describe('useZoomPan', () => {
     expect(result.current.isFollowing).toBe(true);
   });
 
-  it('does not update domain when not following and trace grows within overlap', () => {
+  it('does not update domain when user has explicitly zoomed and trace grows within overlap', () => {
+    let traceEnd = END;
+    const { result, rerender } = renderHook(() => useZoomPan(START, traceEnd));
+
+    // Simulate user zoom — this is the only interaction that should lock the viewport.
+    act(() => result.current.onWheel(400, 800, -1));
+    const lockedDomainEnd = result.current.domain.end;
+
+    traceEnd = 2_000_000; // grows, but user is in explicit control
+    rerender();
+
+    expect(result.current.domain.end).toBe(lockedDomainEnd); // locked
+    expect(result.current.isFollowing).toBe(false);
+  });
+
+  it('auto-resets when stopFollowing() is called programmatically (not by user) and trace grows', () => {
+    // stopFollowing() is called by the controlled liveMode=false effect, not by the user.
+    // In this case the viewport was never user-locked, so we should re-follow when the
+    // trace grows — this is the core of the "empty-spans then real spans arrive" bug.
     let traceEnd = END;
     const { result, rerender } = renderHook(() => useZoomPan(START, traceEnd));
 
     act(() => result.current.stopFollowing());
-    traceEnd = 2_000_000; // grows, but current domain still overlaps
+    expect(result.current.isFollowing).toBe(false);
+
+    traceEnd = 2_000_000;
     rerender();
 
-    expect(result.current.domain.end).toBe(END); // locked
-    expect(result.current.isFollowing).toBe(false);
+    expect(result.current.isFollowing).toBe(true);
+    expect(result.current.domain.end).toBe(2_000_000);
   });
 
   it('auto-resets to following when not following and trace moves entirely past the domain', () => {
@@ -94,6 +114,35 @@ describe('useZoomPan', () => {
 
     expect(result.current.isFollowing).toBe(true);
     expect(result.current.domain).toEqual({ start: -5_000_000, end: -1_000_000 });
+  });
+
+  it('resets to real trace bounds when first real spans arrive after empty-trace mount', () => {
+    // Regression: component mounts with empty spans (traceStart=0, traceEnd=1 placeholder),
+    // liveMode=false calls stopFollowing(), then real spans arrive with nanosecond timestamps.
+    // The domain was stuck at {0,1} — markers for events at real timestamps rendered off-screen.
+    let traceStart = 0;
+    let traceEnd = 1;
+    const { result, rerender } = renderHook(() => useZoomPan(traceStart, traceEnd));
+
+    // liveMode=false calls stopFollowing() — no user interaction
+    act(() => result.current.stopFollowing());
+    expect(result.current.domain).toEqual({ start: 0, end: 1 });
+
+    // First real spans arrive (nanosecond timestamps, much larger than the placeholder)
+    const T = 1_000_000_000_000; // 10^12 — clearly larger than placeholder domain end of 1
+    traceStart = T;
+    traceEnd = T + 1_000_000; // 1 ms range
+    rerender();
+
+    // Domain must reset to cover the real trace, not stay stuck at {0, 1}
+    expect(result.current.isFollowing).toBe(true);
+    expect(result.current.domain).toEqual({ start: T, end: T + 1_000_000 });
+
+    // Trace then expands when the full conversation arrives (assistant response)
+    traceEnd = T + 5_000_000_000; // 5 seconds
+    rerender();
+
+    expect(result.current.domain.end).toBe(T + 5_000_000_000);
   });
 
   // ── Zoom ───────────────────────────────────────────────────────────────────

@@ -73,6 +73,13 @@ export function useZoomPan(
   const domainRef = useRef(domain);
   domainRef.current = domain;
 
+  // True when the user has explicitly set the viewport (wheel zoom or drag pan)
+  // since the last follow() call. When false, we auto-follow if the trace grows
+  // beyond the current domain — this handles the case where the domain was set
+  // by an animation during an earlier empty-trace phase and the full trace then
+  // arrives after the component switched to non-following mode.
+  const userLockedRef = useRef(!!initialDomain);
+
   // rAF animation handle — cancelled on user interaction or when a new animation starts.
   const animFrameRef = useRef<number | null>(null);
 
@@ -107,8 +114,11 @@ export function useZoomPan(
   }
 
   // While following, keep domain in sync as trace bounds grow (live traces).
-  // When not following, auto-reset if the trace has shifted so far that the
-  // current domain no longer overlaps at all (e.g. a completely new trace loaded).
+  // When not following, auto-reset if:
+  //   • the trace has shifted so the current domain no longer overlaps at all, OR
+  //   • the user has never explicitly zoomed/panned and the trace has grown beyond
+  //     the current domain end (handles the case where domain was set by an animation
+  //     during an empty-trace phase and the real trace arrives later).
   useEffect(() => {
     if (isFollowing) {
       const target = { start: traceStart, end: traceEnd };
@@ -117,7 +127,12 @@ export function useZoomPan(
       animateTo(cur, target);
     } else {
       const d = domainRef.current;
-      if (d.end < traceStart || d.start > traceEnd) {
+      if (
+        d.end < traceStart ||
+        d.start > traceEnd ||
+        (!userLockedRef.current && traceEnd > d.end)
+      ) {
+        userLockedRef.current = false;
         setIsFollowing(true);
         setDomain({ start: traceStart, end: traceEnd });
       }
@@ -128,6 +143,7 @@ export function useZoomPan(
 
   function onWheel(cursorX: number, widthPx: number, deltaY: number) {
     cancelAnimation();
+    userLockedRef.current = true;
     setIsFollowing(false);
     const factor = deltaY > 0 ? 1.15 : 0.85;
     setDomain((prev) => {
@@ -147,6 +163,7 @@ export function useZoomPan(
 
   function startDrag(clientX: number) {
     cancelAnimation();
+    userLockedRef.current = true;
     setIsFollowing(false);
     dragRef.current = { clientX, domainSnapshot: domain };
   }
@@ -173,6 +190,7 @@ export function useZoomPan(
   }
 
   function follow() {
+    userLockedRef.current = false;
     setIsFollowing(true);
     // The useEffect above will sync domain to current traceStart/traceEnd once isFollowing is true
   }
