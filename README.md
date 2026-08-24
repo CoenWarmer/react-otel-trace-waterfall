@@ -26,6 +26,7 @@ Built on:
 | Prop                      | Type                                   | Default         | Notes                                                                     |
 | ------------------------- | -------------------------------------- | --------------- | ------------------------------------------------------------------------- |
 | `allowZoom`               | `boolean`                              | `true`          | Disables wheel + drag when false                                          |
+| `clampZoomToBounds`       | `boolean`                              | `false`         | Prevents zooming or panning outside the trace bounds                      |
 | `disableInspectPanel`     | `boolean`                              | `false`         | Hides the built-in detail panel; `onSelectSpan` still fires on click      |
 | `disableKeyboardControls` | `boolean`                              | `false`         |                                                                           |
 | `EventMarkerComponent`    | `ComponentType<EventComponentProps>`   | diamond marker  | Custom marker for `EVENT` spans; receives `{ span, x, isSelected }`      |

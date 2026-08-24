@@ -63,6 +63,11 @@ export interface TraceWaterfallProps {
   /** Enable wheel-to-zoom and drag-to-pan on the time axis. Default true. */
   allowZoom?: boolean;
   /**
+   * Prevent zooming or panning outside the trace bounds (including any timelinePadding).
+   * Default false.
+   */
+  clampZoomToBounds?: boolean;
+  /**
    * Padding added to each side of the timeline when it is fitted to the trace bounds, in pixels.
    * Prevents spans at the edges from touching the container border. Default 0.
    */
@@ -222,6 +227,7 @@ function TraceWaterfallInner({
   height = '400px',
   loading = false,
   allowZoom = true,
+  clampZoomToBounds = false,
   timelinePadding = 0,
   zoomLevel,
   FitButtonComponent,
@@ -321,6 +327,7 @@ function TraceWaterfallInner({
       initialDomain: zoomInitialDomainRef.current,
       transitionDuration: liveUpdateDuration,
       transitionEasing: liveUpdateEasing,
+      clampZoomToBounds,
     },
   );
 

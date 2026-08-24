@@ -41,6 +41,11 @@ export interface UseZoomPanOptions {
    * Default: easeOutCubic.
    */
   transitionEasing?: (t: number) => number;
+  /**
+   * When true, the domain cannot be zoomed or panned outside the trace bounds
+   * (traceStart … traceEnd as passed to the hook). Default: false.
+   */
+  clampZoomToBounds?: boolean;
 }
 
 /**
@@ -61,7 +66,7 @@ export function useZoomPan(
   const options: UseZoomPanOptions = thirdArg && 'start' in thirdArg
     ? { initialDomain: thirdArg as ZoomDomain }
     : (thirdArg as UseZoomPanOptions | undefined) ?? {};
-  const { initialDomain, transitionDuration = 300, transitionEasing = easeOutCubic } = options;
+  const { initialDomain, transitionDuration = 300, transitionEasing = easeOutCubic, clampZoomToBounds = false } = options;
   const [domain, setDomain] = useState<ZoomDomain>(
     initialDomain ?? { start: traceStart, end: traceEnd }
   );
@@ -151,11 +156,17 @@ export function useZoomPan(
       const fraction = Math.max(0, Math.min(1, cursorX / widthPx));
       const pivot = prev.start + fraction * span;
 
-      const newStart = pivot - (pivot - prev.start) * factor;
-      const newEnd = pivot + (prev.end - pivot) * factor;
+      let newStart = pivot - (pivot - prev.start) * factor;
+      let newEnd = pivot + (prev.end - pivot) * factor;
 
       // Enforce a minimum visible window of 100µs (100 000 ns) — prevent over-zoom
       if (newEnd - newStart < 100_000) return prev;
+
+      if (clampZoomToBounds) {
+        newStart = Math.max(newStart, traceStart);
+        newEnd = Math.min(newEnd, traceEnd);
+        if (newEnd - newStart < 100_000) return prev;
+      }
 
       return { start: newStart, end: newEnd };
     });
