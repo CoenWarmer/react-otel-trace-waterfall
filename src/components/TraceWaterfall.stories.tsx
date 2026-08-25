@@ -185,3 +185,84 @@ function SelectionCallbackStory() {
 export const SelectionCallback: Story = {
   render: () => <SelectionCallbackStory />,
 };
+
+// ── Folded events ─────────────────────────────────────────────────────────────
+// Demonstrates foldEventsIntoParent: EVENT-kind children render as inline
+// diamond markers on their parent row instead of each getting a row of their own.
+
+const FOLD_TRACE_ID = "fold-demo-trace";
+const FOLD_START = 1_700_000_000_000_000_000;
+
+const foldedEventTrace: OtelSpan[] = [
+  {
+    traceId: FOLD_TRACE_ID,
+    spanId: "root",
+    name: "POST /api/order",
+    startTimeUnixNano: String(FOLD_START),
+    endTimeUnixNano: String(FOLD_START + 400 * MS),
+    kind: "SERVER",
+    status: { code: "OK" },
+    resource: { "service.name": "order-service" },
+  },
+  {
+    traceId: FOLD_TRACE_ID,
+    spanId: "db-query",
+    parentSpanId: "root",
+    name: "SELECT orders",
+    startTimeUnixNano: String(FOLD_START + 20 * MS),
+    endTimeUnixNano: String(FOLD_START + 80 * MS),
+    kind: "CLIENT",
+    status: { code: "OK" },
+    resource: { "service.name": "postgres" },
+  },
+  {
+    traceId: FOLD_TRACE_ID,
+    spanId: "ev-validated",
+    parentSpanId: "root",
+    name: "order.validated",
+    startTimeUnixNano: String(FOLD_START + 90 * MS),
+    endTimeUnixNano: String(FOLD_START + 90 * MS),
+    kind: "EVENT",
+    resource: { "service.name": "order-service" },
+  },
+  {
+    traceId: FOLD_TRACE_ID,
+    spanId: "payment",
+    parentSpanId: "root",
+    name: "charge payment",
+    startTimeUnixNano: String(FOLD_START + 100 * MS),
+    endTimeUnixNano: String(FOLD_START + 220 * MS),
+    kind: "CLIENT",
+    status: { code: "OK" },
+    resource: { "service.name": "payment-svc" },
+  },
+  {
+    traceId: FOLD_TRACE_ID,
+    spanId: "ev-charged",
+    parentSpanId: "root",
+    name: "payment.charged",
+    startTimeUnixNano: String(FOLD_START + 225 * MS),
+    endTimeUnixNano: String(FOLD_START + 225 * MS),
+    kind: "EVENT",
+    resource: { "service.name": "order-service" },
+  },
+  {
+    traceId: FOLD_TRACE_ID,
+    spanId: "ev-shipped",
+    parentSpanId: "root",
+    name: "order.shipped",
+    startTimeUnixNano: String(FOLD_START + 380 * MS),
+    endTimeUnixNano: String(FOLD_START + 380 * MS),
+    kind: "EVENT",
+    resource: { "service.name": "order-service" },
+  },
+];
+
+export const FoldedEvents: Story = {
+  args: {
+    spans: foldedEventTrace,
+    height: "200px",
+    foldEventsIntoParent: true,
+    initialState: "expanded",
+  },
+};

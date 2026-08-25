@@ -41,4 +41,9 @@ export interface FlatRow {
   span: SpanNode;
   hasChildren: boolean;
   isExpanded: boolean;
+  /**
+   * EVENT-kind children folded onto this row, sorted by start time.
+   * Populated only when the waterfall uses `foldEventsIntoParent`; otherwise an empty array.
+   */
+  events?: SpanNode[];
 }

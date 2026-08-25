@@ -432,4 +432,84 @@ describe('TraceWaterfall', () => {
     // No focused row → no selection change; just assert no crash and no visible focus ring
     expect(screen.queryByRole('row', { selected: true })).not.toBeInTheDocument();
   });
+
+  // ── foldEventsIntoParent ──────────────────────────────────────────────────
+
+  const eventSpanA = mkSpan({
+    spanId: 'evA', parentSpanId: 'root', name: 'event A',
+    kind: 'EVENT', startTimeUnixNano: NS(50), endTimeUnixNano: NS(50),
+  });
+  const eventSpanB = mkSpan({
+    spanId: 'evB', parentSpanId: 'root', name: 'event B',
+    kind: 'EVENT', startTimeUnixNano: NS(80), endTimeUnixNano: NS(80),
+  });
+  const spansWithEvents = [rootSpan, eventSpanA, eventSpanB];
+
+  it('foldEventsIntoParent renders fewer rows than without (events disappear from row list)', () => {
+    // With root expanded, without folding: root + evA + evB = 3 rows.
+    // With folding: root only = 1 row (events rendered inline).
+    const { rerender } = render(
+      <TraceWaterfall spans={spansWithEvents} initialState="expanded" />
+    );
+    const rowsBefore = screen.getAllByRole('row').length;
+
+    rerender(<TraceWaterfall spans={spansWithEvents} initialState="expanded" foldEventsIntoParent />);
+    const rowsAfter = screen.getAllByRole('row').length;
+
+    expect(rowsAfter).toBeLessThan(rowsBefore);
+  });
+
+  it('clicking a folded event marker fires onSelectSpan with the event span', () => {
+    const onSelectSpan = vi.fn();
+    render(
+      <TraceWaterfall
+        spans={spansWithEvents}
+        foldEventsIntoParent
+        onSelectSpan={onSelectSpan}
+        disableInspectPanel
+      />
+    );
+    fireEvent.click(screen.getByTitle('event A'));
+    expect(onSelectSpan).toHaveBeenCalledWith(expect.objectContaining({ spanId: 'evA' }));
+  });
+
+  it('EventMarkerComponent receives each folded event', () => {
+    const Marker = vi.fn(({ span }: { span: { spanId: string }; x: number; isSelected: boolean }) => (
+      <div data-testid={`marker-${span.spanId}`} />
+    ));
+    render(
+      <TraceWaterfall
+        spans={spansWithEvents}
+        foldEventsIntoParent
+        EventMarkerComponent={Marker as React.ComponentType<{ span: { spanId: string }; x: number; isSelected: boolean }>}
+      />
+    );
+    expect(screen.getByTestId('marker-evA')).toBeInTheDocument();
+    expect(screen.getByTestId('marker-evB')).toBeInTheDocument();
+  });
+
+  it('hovering a folded marker passes event to TooltipComponent; leaving the row clears it', () => {
+    const Tooltip = vi.fn(({ span, event }: SpanTooltipProps) => (
+      <div data-testid="tooltip">{event ? `event:${event.name}` : `span:${span.name}`}</div>
+    ));
+    render(
+      <TraceWaterfall
+        spans={spansWithEvents}
+        foldEventsIntoParent
+        TooltipComponent={Tooltip}
+      />
+    );
+
+    // Hover the root row — tooltip shows the row's span
+    fireEvent.mouseEnter(screen.getAllByRole('row')[0]);
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('span:root span');
+
+    // Hover the folded event marker — tooltip now shows the event
+    fireEvent.mouseEnter(screen.getByTitle('event A'));
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('event:event A');
+
+    // Leave the row entirely — tooltip disappears
+    fireEvent.mouseLeave(screen.getAllByRole('row')[0]);
+    expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+  });
 });

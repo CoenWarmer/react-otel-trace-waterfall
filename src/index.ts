@@ -17,6 +17,7 @@ export { getTraceDomain, buildTimeScale, formatNanoDuration, nanoToDate } from '
 export type { TimeScale } from './utils/timeScale';
 export { useZoomPan, easeOutCubic } from './hooks/useZoomPan';
 export type { ZoomDomain, UseZoomPanResult, UseZoomPanOptions } from './hooks/useZoomPan';
+export { ThemeContext, useTheme } from './ThemeContext';
 export { defaultTheme, darkTheme } from './theme';
 export type { ThemeTokens } from './theme';
 export type {

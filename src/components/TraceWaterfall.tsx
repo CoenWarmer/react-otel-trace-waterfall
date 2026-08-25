@@ -35,6 +35,8 @@ export interface SpanInspectProps {
 /** Props received by a custom span tooltip. */
 export interface SpanTooltipProps {
   span: SpanNode;
+  /** Set when the pointer is over a folded inline event marker rather than the row's bar. */
+  event?: SpanNode;
 }
 
 /** Props received by a custom span row component. */
@@ -46,6 +48,8 @@ export interface SpanComponentProps {
   isNew: boolean;
   onToggle: (spanId: string) => void;
   onSelect: (spanId: string) => void;
+  /** Call with a folded event span when the pointer enters an inline event marker, null on leave. */
+  onHoverEvent: (event: SpanNode | null) => void;
 }
 
 export type { ExpandComponentProps, RowPrefixProps, EventComponentProps };
@@ -171,6 +175,12 @@ export interface TraceWaterfallProps {
    * Receives `{ isExpanded, hasChildren, onToggle }`.
    */
   ExpandComponent?: React.ComponentType<ExpandComponentProps>;
+  /**
+   * Render EVENT-kind child spans as inline markers on their parent's row instead of
+   * giving each one its own row. The folded events are available on `FlatRow.events`.
+   * Default false.
+   */
+  foldEventsIntoParent?: boolean;
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
@@ -250,6 +260,7 @@ function TraceWaterfallInner({
   disableInspectPanel = false,
   initialState = 'collapsed',
   ExpandComponent,
+  foldEventsIntoParent = false,
 }: TraceWaterfallProps) {
   const theme = useTheme();
 
@@ -286,7 +297,10 @@ function TraceWaterfallInner({
 
   // ── Derived data ───────────────────────────────────────────────────────────
   const roots = useMemo(() => buildSpanTree(spans), [spans]);
-  const rows = useMemo(() => flattenTree(roots, expandedIds), [roots, expandedIds]);
+  const rows = useMemo(
+    () => flattenTree(roots, expandedIds, { foldEvents: foldEventsIntoParent }),
+    [roots, expandedIds, foldEventsIntoParent],
+  );
   const spanMap = useMemo(() => buildSpanMap(roots), [roots]);
   const selectedSpan = selectedSpanId ? (spanMap.get(selectedSpanId) ?? null) : null;
   const traceDomain = useMemo(() => getTraceDomain(spans), [spans]);
@@ -472,6 +486,7 @@ function TraceWaterfallInner({
   }
 
   const [hoveredSpan, setHoveredSpan] = useState<SpanNode | null>(null);
+  const [hoveredEvent, setHoveredEvent] = useState<SpanNode | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   function handleHover(spanId: string) {
@@ -481,8 +496,12 @@ function TraceWaterfallInner({
   }
 
   function handleHoverEnd() {
-    if (TooltipComponent) setHoveredSpan(null);
+    if (TooltipComponent) { setHoveredSpan(null); setHoveredEvent(null); }
     onSpanHover?.(null);
+  }
+
+  function handleHoverEvent(event: SpanNode | null) {
+    if (TooltipComponent) setHoveredEvent(event);
   }
 
   function handleMouseMove(e: React.MouseEvent) {
@@ -727,6 +746,7 @@ function TraceWaterfallInner({
                             isNew={isNew}
                             onToggle={toggle}
                             onSelect={select}
+                            onHoverEvent={handleHoverEvent}
                           />
                         </div>
                       ) : (
@@ -744,6 +764,7 @@ function TraceWaterfallInner({
                           onSelect={select}
                           onHover={onSpanHover || TooltipComponent ? handleHover : undefined}
                           onHoverEnd={onSpanHover || TooltipComponent ? handleHoverEnd : undefined}
+                          onHoverEvent={TooltipComponent ? handleHoverEvent : undefined}
                         />
                       )
                     ) : (
@@ -791,7 +812,7 @@ function TraceWaterfallInner({
             pointerEvents: 'none',
           }}
         >
-          <TooltipComponent span={hoveredSpan} />
+          <TooltipComponent span={hoveredSpan} event={hoveredEvent ?? undefined} />
         </div>
       )}
     </div>

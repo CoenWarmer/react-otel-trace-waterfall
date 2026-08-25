@@ -29,7 +29,8 @@ Built on:
 | `clampZoomToBounds`       | `boolean`                              | `false`         | Prevents zooming or panning outside the trace bounds                      |
 | `disableInspectPanel`     | `boolean`                              | `false`         | Hides the built-in detail panel; `onSelectSpan` still fires on click      |
 | `disableKeyboardControls` | `boolean`                              | `false`         |                                                                           |
-| `EventMarkerComponent`    | `ComponentType<EventComponentProps>`   | diamond marker  | Custom marker for `EVENT` spans; receives `{ span, x, isSelected }`      |
+| `EventMarkerComponent`    | `ComponentType<EventComponentProps>`   | diamond marker  | Custom marker for `EVENT` spans (standalone rows and folded inline markers); receives `{ span, x, isSelected }` |
+| `foldEventsIntoParent`    | `boolean`                              | `false`         | Renders `EVENT`-kind children as inline markers on the parent row; folded spans are available on `FlatRow.events` |
 | `ExpandComponent`         | `ComponentType<ExpandComponentProps>`  | ▸/▾ button      | Ignored when `SpanComponent` is set                                       |
 | `FitButtonComponent`      | `ComponentType<FitButtonProps>`        | built-in button | Custom fit-to-width button; receives `{ onClick }`                        |
 | `height`                  | `number \| string`                     | `'400px'`       |                                                                           |
@@ -45,7 +46,7 @@ Built on:
 | `onZoomReset`             | `() => void`                           | —               | Called alongside zoom reset                                               |
 | `RowPrefixComponent`      | `ComponentType<RowPrefixProps>`        | —               | Rendered before every row label; receives `{ row, isSelected, isNew }`    |
 | `SkeletonComponent`       | `ComponentType`                        | built-in        | No props                                                                  |
-| `SpanComponent`           | `ComponentType<SpanComponentProps>`    | `SpanRow`       | Full row replacement; wrapped for a11y                                    |
+| `SpanComponent`           | `ComponentType<SpanComponentProps>`    | `SpanRow`       | Full row replacement; wrapped for a11y. Call `useTheme()` inside it to read the active theme |
 | `SpanInspectComponent`    | `ComponentType<SpanInspectProps>`      | `SpanDetail`    | Receives `{ span, onClose }`                                              |
 | `spans`                   | `OtelSpan[]`                           | required        |                                                                           |
 | `theme`                   | `Partial<ThemeTokens>`                 | `defaultTheme`  |                                                                           |

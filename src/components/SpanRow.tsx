@@ -72,7 +72,8 @@ export interface SpanRowProps {
    */
   RowPrefixComponent?: React.ComponentType<RowPrefixProps>;
   /**
-   * Replaces the default diamond marker for EVENT-kind spans.
+   * Replaces the default diamond marker for EVENT-kind spans (standalone rows and
+   * folded inline markers on a parent row).
    * Rendered inside an absolutely-positioned, centred wrapper at the span's timestamp.
    * Receives `{ span, x, isSelected }`.
    */
@@ -81,10 +82,37 @@ export interface SpanRowProps {
   onSelect: (spanId: string) => void;
   onHover?: (spanId: string) => void;
   onHoverEnd?: () => void;
+  /** Called with a folded event when the pointer enters its marker, null on leave. */
+  onHoverEvent?: (event: SpanNode | null) => void;
+}
+
+function DefaultEventMarker({
+  barColor,
+  size,
+  isSelected,
+}: {
+  barColor: string;
+  size: number;
+  isSelected: boolean;
+}) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: barColor,
+        transform: 'rotate(45deg)',
+        borderRadius: 2,
+        opacity: isSelected ? 1 : 0.85,
+        outline: isSelected ? `2px solid ${barColor}` : undefined,
+        outlineOffset: 2,
+      }}
+    />
+  );
 }
 
 export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow(
-  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, EventMarkerComponent, onToggle, onSelect, onHover, onHoverEnd },
+  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, EventMarkerComponent, onToggle, onSelect, onHover, onHoverEnd, onHoverEvent },
   ref
 ) {
   const theme = useTheme();
@@ -217,19 +245,13 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
             {EventMarkerComponent ? (
               <EventMarkerComponent span={span} x={startPx} isSelected={isSelected} />
             ) : (
-              <div
-                title={span.name}
-                style={{
-                  width: theme.eventMarkerSize,
-                  height: theme.eventMarkerSize,
-                  backgroundColor: theme.eventMarkerColor || barColor,
-                  transform: 'rotate(45deg)',
-                  borderRadius: 2,
-                  opacity: isSelected ? 1 : 0.85,
-                  outline: isSelected ? `2px solid ${theme.eventMarkerColor || barColor}` : undefined,
-                  outlineOffset: 2,
-                }}
-              />
+              <div title={span.name}>
+                <DefaultEventMarker
+                  barColor={theme.eventMarkerColor || barColor}
+                  size={theme.eventMarkerSize}
+                  isSelected={isSelected}
+                />
+              </div>
             )}
           </div>
         ) : (
@@ -276,6 +298,39 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
                 {formatNanoDuration(durationNs)}
               </div>
             )}
+            {/* Folded inline event markers */}
+            {(row.events ?? []).map((ev) => {
+              const x = scale(Number(ev.startTimeUnixNano));
+              const evColor = theme.eventMarkerColor || serviceColor(
+                ev.resource?.['service.name'] as string | undefined,
+                theme.barPalette,
+              );
+              return (
+                <div
+                  key={ev.spanId}
+                  title={ev.name}
+                  style={{
+                    position: 'absolute',
+                    left: x,
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 1,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  onClick={(e) => { e.stopPropagation(); onSelect(ev.spanId); }}
+                  onMouseEnter={() => onHoverEvent?.(ev)}
+                  onMouseLeave={() => onHoverEvent?.(null)}
+                >
+                  {EventMarkerComponent ? (
+                    <EventMarkerComponent span={ev} x={x} isSelected={false} />
+                  ) : (
+                    <DefaultEventMarker barColor={evColor} size={theme.eventMarkerSize} isSelected={false} />
+                  )}
+                </div>
+              );
+            })}
           </>
         )}
       </div>
