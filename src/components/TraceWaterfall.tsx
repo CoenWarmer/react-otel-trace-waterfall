@@ -443,11 +443,6 @@ function TraceWaterfallInner({
     if (el) { el.focus({ preventScroll: true }); pendingFocusRef.current = null; }
   });
 
-  // Notify parent when selection changes.
-  useEffect(() => {
-    onSelectSpan?.(selectedSpanId ? (spanMap.get(selectedSpanId) ?? null) : null);
-  }, [selectedSpanId]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Handlers ──────────────────────────────────────────────────────────────
   function toggle(spanId: string) {
     anchorRef.current = {
@@ -464,7 +459,9 @@ function TraceWaterfallInner({
 
   function select(spanId: string) {
     setFocusedSpanId(spanId);
-    setSelectedSpanId((prev) => (prev === spanId ? null : spanId));
+    const next = selectedSpanId === spanId ? null : spanId;
+    setSelectedSpanId(next);
+    onSelectSpan?.(next ? (spanMap.get(next) ?? null) : null);
   }
 
   function focusRow(index: number) {
@@ -494,6 +491,7 @@ function TraceWaterfallInner({
 
   function handleCloseSpan() {
     setSelectedSpanId(null);
+    onSelectSpan?.(null);
     onCloseSpan?.();
   }
 

@@ -1,18 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
-import { TraceWaterfall } from './TraceWaterfall';
-import type { OtelSpan } from '../types';
-import { simpleTrace, errorTrace, deepTrace, wideTrace, largeTrace } from '../fixtures/traces';
-import { darkTheme } from '../theme';
+import { useEffect, useRef, useState } from "react";
+import type { Meta, StoryObj } from "@storybook/react";
+import { TraceWaterfall } from "./TraceWaterfall";
+import type { OtelSpan, SpanNode } from "../types";
+import {
+  simpleTrace,
+  errorTrace,
+  deepTrace,
+  wideTrace,
+  largeTrace,
+} from "../fixtures/traces";
+import { darkTheme } from "../theme";
 
 const meta: Meta<typeof TraceWaterfall> = {
-  title: 'Components/TraceWaterfall',
+  title: "Components/TraceWaterfall",
   component: TraceWaterfall,
   parameters: {
-    layout: 'padded',
+    layout: "padded",
   },
   argTypes: {
-    height: { control: 'text' },
+    height: { control: "text" },
   },
 };
 
@@ -20,24 +26,24 @@ export default meta;
 type Story = StoryObj<typeof TraceWaterfall>;
 
 export const Simple: Story = {
-  args: { spans: simpleTrace, height: '200px' },
+  args: { spans: simpleTrace, height: "200px" },
 };
 
 export const WithErrors: Story = {
-  args: { spans: errorTrace, height: '200px' },
+  args: { spans: errorTrace, height: "200px" },
 };
 
 export const DeepNesting: Story = {
-  args: { spans: deepTrace, height: '300px' },
+  args: { spans: deepTrace, height: "300px" },
 };
 
 export const WideFanOut: Story = {
-  args: { spans: wideTrace, height: '400px' },
+  args: { spans: wideTrace, height: "400px" },
 };
 
 /** 1 000-span trace — use this story to verify smooth virtualized scrolling. */
 export const LargeTrace: Story = {
-  args: { spans: largeTrace, height: '600px' },
+  args: { spans: largeTrace, height: "600px" },
 };
 
 export const Empty: Story = {
@@ -45,8 +51,19 @@ export const Empty: Story = {
 };
 
 export const Dark: Story = {
-  args: { spans: errorTrace, height: '300px', theme: darkTheme },
-  parameters: { backgrounds: { default: 'dark' } },
+  args: { spans: errorTrace, height: "300px", theme: darkTheme },
+  parameters: { backgrounds: { default: "dark" } },
+};
+
+export const ClickSpan: Story = {
+  args: {
+    onSelectSpan: () => {
+      console.log("hi");
+    },
+    disableInspectPanel: true,
+    spans: wideTrace,
+    height: "400px",
+  },
 };
 
 // ── Live / streaming trace ────────────────────────────────────────────────────
@@ -54,33 +71,50 @@ export const Dark: Story = {
 // Verifies that zoom stays stable (following mode), the viewport doesn't jump
 // as rows are inserted, and keyboard focus stays on the correct span.
 
-const LIVE_TRACE_ID = 'live-trace-001';
+const LIVE_TRACE_ID = "live-trace-001";
 const ROOT_START = 1_700_000_000_000_000_000;
 const MS = 1_000_000; // 1 ms in nanoseconds
 
 function buildLiveSpans(count: number): OtelSpan[] {
   const root: OtelSpan = {
     traceId: LIVE_TRACE_ID,
-    spanId: 'root',
-    name: 'POST /checkout',
+    spanId: "root",
+    name: "POST /checkout",
     startTimeUnixNano: String(ROOT_START),
     endTimeUnixNano: String(ROOT_START + count * 80 * MS),
-    kind: 'SERVER',
-    status: { code: count >= 10 ? 'OK' : 'UNSET' },
-    resource: { 'service.name': 'checkout-service' },
+    kind: "SERVER",
+    status: { code: count >= 10 ? "OK" : "UNSET" },
+    resource: { "service.name": "checkout-service" },
   };
 
   const children: OtelSpan[] = Array.from({ length: count - 1 }, (_, i) => ({
     traceId: LIVE_TRACE_ID,
     spanId: `child-${i}`,
-    parentSpanId: 'root',
-    name: ['validate cart', 'reserve stock', 'charge payment', 'send receipt', 'update loyalty',
-      'notify warehouse', 'log audit', 'update search', 'invalidate cache', 'enqueue email'][i % 10],
+    parentSpanId: "root",
+    name: [
+      "validate cart",
+      "reserve stock",
+      "charge payment",
+      "send receipt",
+      "update loyalty",
+      "notify warehouse",
+      "log audit",
+      "update search",
+      "invalidate cache",
+      "enqueue email",
+    ][i % 10],
     startTimeUnixNano: String(ROOT_START + (i + 1) * 80 * MS),
     endTimeUnixNano: String(ROOT_START + (i + 1) * 80 * MS + 60 * MS),
-    kind: 'CLIENT',
-    status: { code: 'OK' },
-    resource: { 'service.name': ['payment-svc', 'stock-svc', 'notification-svc', 'audit-svc'][i % 4] },
+    kind: "CLIENT",
+    status: { code: "OK" },
+    resource: {
+      "service.name": [
+        "payment-svc",
+        "stock-svc",
+        "notification-svc",
+        "audit-svc",
+      ][i % 4],
+    },
   }));
 
   return [root, ...children];
@@ -101,9 +135,17 @@ function LiveTraceStory() {
 
   return (
     <div>
-      <p style={{ fontFamily: 'system-ui', fontSize: 13, marginBottom: 8, color: '#718096' }}>
-        Spans arrive every 800 ms. The axis should extend automatically while you have not
-        interacted with zoom/pan. Once you zoom, a "Reset zoom" button appears to resume following.
+      <p
+        style={{
+          fontFamily: "system-ui",
+          fontSize: 13,
+          marginBottom: 8,
+          color: "#718096",
+        }}
+      >
+        Spans arrive every 800 ms. The axis should extend automatically while
+        you have not interacted with zoom/pan. Once you zoom, a "Reset zoom"
+        button appears to resume following.
       </p>
       <TraceWaterfall spans={spans} height="300px" />
     </div>
@@ -112,4 +154,34 @@ function LiveTraceStory() {
 
 export const LiveStreaming: Story = {
   render: () => <LiveTraceStory />,
+};
+
+// ── Custom select callback (no inspect panel) ────────────────────────────────
+// Demonstrates using onSelectSpan with disableInspectPanel.
+// Click any span — the callback logs to the console and the selected span name
+// is shown below the waterfall.
+
+function SelectionCallbackStory() {
+  const [selected, setSelected] = useState<SpanNode | null>(null);
+
+  return (
+    <div>
+      <TraceWaterfall
+        spans={simpleTrace}
+        height="300px"
+        disableInspectPanel
+        onSelectSpan={(span) => {
+          console.log('[onSelectSpan]', span);
+          setSelected(span);
+        }}
+      />
+      <p style={{ fontFamily: 'system-ui', fontSize: 13, marginTop: 8, color: '#718096' }}>
+        {selected ? `Selected: ${selected.name} (${selected.spanId})` : 'Click a span to select it'}
+      </p>
+    </div>
+  );
+}
+
+export const SelectionCallback: Story = {
+  render: () => <SelectionCallbackStory />,
 };
