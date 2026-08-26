@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { TraceWaterfall } from "./TraceWaterfall";
 import type { SpanNameProps, SpanBarProps } from "./TraceWaterfall";
@@ -356,4 +356,81 @@ export const CustomSpanBarSlot: Story = {
     initialState: "expanded",
     SpanBarComponent: CustomSpanBar,
   },
+};
+
+// ── ms-timed spans (item 1) ───────────────────────────────────────────────────
+// Demonstrates supplying spans with startTimeMs / endTimeMs instead of nano strings.
+
+const NOW_MS = Date.now();
+const msTimedSpans: OtelSpan[] = [
+  { traceId: 'ms-trace', spanId: 'root', name: 'POST /checkout', startTimeMs: NOW_MS, endTimeMs: NOW_MS + 200, resource: { 'service.name': 'api' } },
+  { traceId: 'ms-trace', spanId: 'db', name: 'SELECT orders', parentSpanId: 'root', startTimeMs: NOW_MS + 20, endTimeMs: NOW_MS + 90, resource: { 'service.name': 'db' } },
+  { traceId: 'ms-trace', spanId: 'pay', name: 'charge card', parentSpanId: 'root', startTimeMs: NOW_MS + 100, endTimeMs: NOW_MS + 180, resource: { 'service.name': 'payment' } },
+];
+
+export const MsTimedSpans: Story = {
+  name: "startTimeMs / endTimeMs",
+  args: { spans: msTimedSpans, height: "200px", initialState: "expanded" },
+};
+
+// ── Folded error events (item 3 bug fix) ─────────────────────────────────────
+// An ERROR-status EVENT span folded onto its parent row should render a red
+// marker, not the service palette colour.
+
+const FOLD_ERROR_TRACE_ID = "fold-error-demo";
+const FOLD_ERROR_START = 1_700_000_000_000_000_000;
+const MS2 = 1_000_000;
+
+const foldedErrorTrace: OtelSpan[] = [
+  { traceId: FOLD_ERROR_TRACE_ID, spanId: "root2", name: "POST /api/order", startTimeUnixNano: String(FOLD_ERROR_START), endTimeUnixNano: String(FOLD_ERROR_START + 300 * MS2), kind: "SERVER", status: { code: "OK" }, resource: { "service.name": "order-service" } },
+  { traceId: FOLD_ERROR_TRACE_ID, spanId: "ev-ok", parentSpanId: "root2", name: "order.validated", startTimeUnixNano: String(FOLD_ERROR_START + 80 * MS2), endTimeUnixNano: String(FOLD_ERROR_START + 80 * MS2), kind: "EVENT", status: { code: "OK" }, resource: { "service.name": "order-service" } },
+  { traceId: FOLD_ERROR_TRACE_ID, spanId: "ev-err", parentSpanId: "root2", name: "payment.failed", startTimeUnixNano: String(FOLD_ERROR_START + 200 * MS2), endTimeUnixNano: String(FOLD_ERROR_START + 200 * MS2), kind: "EVENT", status: { code: "ERROR" }, resource: { "service.name": "payment-svc" } },
+];
+
+export const FoldedErrorEvents: Story = {
+  name: "Folded events — error colour (item 3 fix)",
+  args: {
+    spans: foldedErrorTrace,
+    height: "120px",
+    foldEventsIntoParent: true,
+    initialState: "expanded",
+  },
+};
+
+// ── resetKey (item 4) ─────────────────────────────────────────────────────────
+// Clicking "New run" re-applies initialState and clears selection without
+// remounting the component (scroll position and zoom are preserved).
+
+function ResetKeyStory() {
+  const [runId, setRunId] = useState("run-1");
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const nextRun = useCallback(() => {
+    setRunId(id => id === "run-1" ? "run-2" : "run-1");
+    setSelected(null);
+  }, []);
+
+  return (
+    <div>
+      <div style={{ fontFamily: "system-ui", fontSize: 13, marginBottom: 8, display: "flex", gap: 12, alignItems: "center", color: "#718096" }}>
+        <button onClick={nextRun} style={{ padding: "3px 10px", cursor: "pointer" }}>
+          New run (resetKey)
+        </button>
+        <span>Run: {runId}</span>
+        {selected && <span>Selected: {selected}</span>}
+      </div>
+      <TraceWaterfall
+        spans={errorTrace}
+        height="300px"
+        initialState="expanded"
+        resetKey={runId}
+        disableInspectPanel
+        onSelectSpan={span => setSelected(span?.name ?? null)}
+      />
+    </div>
+  );
+}
+
+export const ResetKey: Story = {
+  render: () => <ResetKeyStory />,
 };

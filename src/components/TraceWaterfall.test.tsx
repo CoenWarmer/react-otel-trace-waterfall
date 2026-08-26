@@ -25,14 +25,22 @@ vi.mock('@tanstack/react-virtual', () => ({
 
 const NS = (ms: number) => String(1_700_000_000_000_000_000 + ms * 1_000_000);
 
-function mkSpan(overrides: Partial<OtelSpan> & Pick<OtelSpan, 'spanId' | 'name'>): OtelSpan {
+// mkSpan builds a nano-timed OtelSpan. We use `as OtelSpan` because Partial<union>
+// doesn't preserve the discriminant; the resulting object always satisfies the nano variant.
+function mkSpan(overrides: {
+  spanId: string; name: string;
+  traceId?: string; parentSpanId?: string;
+  startTimeUnixNano?: string; endTimeUnixNano?: string;
+  status?: { code: 'OK' | 'ERROR' | 'UNSET' }; kind?: string;
+  resource?: Record<string, string | number | boolean>;
+}): OtelSpan {
   return {
     traceId: 'test-trace',
     startTimeUnixNano: NS(0),
     endTimeUnixNano: NS(100),
     resource: { 'service.name': 'svc' },
     ...overrides,
-  };
+  } as OtelSpan;
 }
 
 // root → childA → grandchild
@@ -512,5 +520,82 @@ describe('TraceWaterfall', () => {
     // Leave the row entirely — tooltip disappears
     fireEvent.mouseLeave(screen.getAllByRole('row')[0]);
     expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
+  });
+
+  // ── startTimeMs / endTimeMs (item 1) ──────────────────────────────────────
+
+  it('accepts ms-timed spans and renders them correctly', () => {
+    const MS = 1_700_000_000_000; // ms since epoch
+    const msSpans: OtelSpan[] = [
+      { traceId: 't', spanId: 'a', name: 'alpha', startTimeMs: MS, endTimeMs: MS + 100 },
+      { traceId: 't', spanId: 'b', name: 'beta', parentSpanId: 'a', startTimeMs: MS + 10, endTimeMs: MS + 80 },
+    ];
+    render(<TraceWaterfall spans={msSpans} initialState="expanded" />);
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+    expect(screen.getByText('2 spans')).toBeInTheDocument();
+  });
+
+  // ── inspectPanelContainer (item 2) ────────────────────────────────────────
+
+  it('portals the inspect panel into inspectPanelContainer when provided', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    render(
+      <TraceWaterfall
+        spans={spans}
+        inspectPanelContainer={container}
+      />
+    );
+
+    fireEvent.click(screen.getByText('root span'));
+
+    // The panel should be in the external container, not the waterfall DOM
+    expect(container.textContent).toContain('root span');
+
+    document.body.removeChild(container);
+  });
+
+  // ── resetKey (item 4) ────────────────────────────────────────────────────
+
+  it('resetKey clears selection and fires onSelectSpan(null)', async () => {
+    const onSelectSpan = vi.fn();
+    const { rerender } = render(
+      <TraceWaterfall
+        spans={spans}
+        onSelectSpan={onSelectSpan}
+        disableInspectPanel
+        resetKey="run-1"
+      />
+    );
+
+    fireEvent.click(screen.getByText('root span'));
+    await waitFor(() => expect(onSelectSpan).toHaveBeenCalledWith(
+      expect.objectContaining({ spanId: 'root' })
+    ));
+
+    rerender(
+      <TraceWaterfall
+        spans={spans}
+        onSelectSpan={onSelectSpan}
+        disableInspectPanel
+        resetKey="run-2"
+      />
+    );
+
+    await waitFor(() => expect(onSelectSpan).toHaveBeenLastCalledWith(null));
+  });
+
+  it('resetKey collapses rows when initialState is collapsed', async () => {
+    const { rerender } = render(
+      <TraceWaterfall spans={spans} initialState="expanded" resetKey="run-1" />
+    );
+    // Expanded: all 4 spans visible
+    expect(screen.getAllByRole('row').length).toBe(4);
+
+    // Reset with collapsed state
+    rerender(<TraceWaterfall spans={spans} initialState="collapsed" resetKey="run-2" />);
+    await waitFor(() => expect(screen.getAllByRole('row').length).toBe(1));
   });
 });

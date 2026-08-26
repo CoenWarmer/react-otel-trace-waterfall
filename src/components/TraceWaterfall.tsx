@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { OtelSpan, SpanNode } from '../types';
 import type { FlatRow } from '../types';
@@ -184,6 +185,24 @@ export interface TraceWaterfallProps {
   /** Hide the built-in span detail panel entirely. onSelectSpan still fires on click. */
   disableInspectPanel?: boolean;
 
+  // ── Panel portal ───────────────────────────────────────────────────────────
+  /**
+   * Where to mount the span detail panel. When omitted the panel renders
+   * inline inside the waterfall container. Pass an element (e.g.
+   * `document.body`) to portal it out — useful when the waterfall lives in a
+   * scroll-clipping container that would otherwise crop the panel.
+   */
+  inspectPanelContainer?: HTMLElement | null;
+
+  // ── Tree state reset ───────────────────────────────────────────────────────
+  /**
+   * Change this value to re-apply `initialState` and clear per-row state
+   * (expansion, selection, focus) without remounting the component.
+   * Useful when switching to a different trace in the same view — e.g. when
+   * a new run starts and the old expansion state should not carry over.
+   */
+  resetKey?: string | number;
+
   // ── Tree expansion ─────────────────────────────────────────────────────────
   /**
    * Initial expansion state for all spans.
@@ -282,6 +301,8 @@ function TraceWaterfallInner({
   liveUpdateEasing,
   disableKeyboardControls = false,
   disableInspectPanel = false,
+  inspectPanelContainer,
+  resetKey,
   initialState = 'collapsed',
   ExpandComponent,
   foldEventsIntoParent = false,
@@ -386,6 +407,25 @@ function TraceWaterfallInner({
 
   // Effective live mode — prop wins when provided, otherwise internal state.
   const effectiveLiveMode = liveMode !== undefined ? liveMode : isFollowing;
+
+  // ── resetKey ────────────────────────────────────────────────────────────────
+  // When resetKey changes, re-apply initialState and clear per-row UI state
+  // without remounting. Uses refs so the effect captures the latest prop values
+  // without listing them as dependencies (only resetKey should trigger the reset).
+  const initialStateRef = useRef(initialState);
+  initialStateRef.current = initialState;
+  const spansRef = useRef(spans);
+  spansRef.current = spans;
+  const onSelectSpanRef = useRef(onSelectSpan);
+  onSelectSpanRef.current = onSelectSpan;
+  const resetKeyMountedRef = useRef(false);
+  useEffect(() => {
+    if (!resetKeyMountedRef.current) { resetKeyMountedRef.current = true; return; }
+    setExpandedIds(initialStateRef.current === 'expanded' ? allParentIds(spansRef.current) : new Set());
+    setSelectedSpanId(null);
+    setFocusedSpanId(null);
+    onSelectSpanRef.current?.(null);
+  }, [resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scale = useMemo(
     () => traceDomain && timelineWidth > 0 ? buildTimeScale([domain.start, domain.end], timelineWidth) : null,
@@ -631,6 +671,7 @@ function TraceWaterfallInner({
   const InspectPanel = SpanInspectComponent ?? SpanDetail;
 
   return (
+    <>
     <div
       style={{ ...containerStyle, display: 'flex', flexDirection: 'column' }}
       onMouseMove={TooltipComponent ? handleMouseMove : undefined}
@@ -821,8 +862,8 @@ function TraceWaterfallInner({
           </div>
         </div>
 
-        {/* Inspect / detail panel */}
-        {selectedSpan && !disableInspectPanel && (
+        {/* Inspect / detail panel — inline when no portal target is set */}
+        {selectedSpan && !disableInspectPanel && !inspectPanelContainer && (
           <InspectPanel span={selectedSpan} onClose={handleCloseSpan} />
         )}
       </div>
@@ -842,6 +883,11 @@ function TraceWaterfallInner({
         </div>
       )}
     </div>
+    {/* Inspect panel portal — rendered into inspectPanelContainer when provided */}
+    {selectedSpan && !disableInspectPanel && inspectPanelContainer
+      ? createPortal(<InspectPanel span={selectedSpan} onClose={handleCloseSpan} />, inspectPanelContainer)
+      : null}
+    </>
   );
 }
 

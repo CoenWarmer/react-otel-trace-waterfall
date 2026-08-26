@@ -13,6 +13,8 @@ export type {
   SpanBarProps,
 } from './components/TraceWaterfall';
 export { ROW_HEIGHT, LABEL_WIDTH, INDENT_PX, BAR_HEIGHT } from './components/SpanRow';
+export { makeSpanId, makeTraceId } from './utils/spanId';
+export { stringAttr, numberAttr } from './utils/attrs';
 export { SpanDetail } from './components/SpanDetail';
 export { buildSpanTree } from './utils/buildSpanTree';
 export { flattenTree } from './utils/flattenTree';

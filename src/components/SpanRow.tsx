@@ -25,6 +25,11 @@ function serviceColor(serviceName: string | undefined, palette: readonly string[
   return palette[Math.abs(hash) % palette.length];
 }
 
+function spanBarColor(span: SpanNode, barErrorColor: string, barPalette: readonly string[]): string {
+  if (span.status?.code === 'ERROR') return barErrorColor;
+  return serviceColor(span.resource?.['service.name'] as string | undefined, barPalette);
+}
+
 export const ROW_HEIGHT = 32;
 export const LABEL_WIDTH = 280;
 export const INDENT_PX = 14;
@@ -165,8 +170,7 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
   const barWidth = Math.max(MIN_BAR_WIDTH, endPx - startPx);
   const durationNs = Number(span.endTimeUnixNano) - Number(span.startTimeUnixNano);
 
-  const serviceName = span.resource?.['service.name'] as string | undefined;
-  const barColor = isError ? theme.barErrorColor : serviceColor(serviceName, theme.barPalette);
+  const barColor = spanBarColor(span, theme.barErrorColor, theme.barPalette);
 
   const newRowStyle =
     isNew && theme.newRowHighlightColor && theme.newRowHighlightColor !== 'transparent'
@@ -249,7 +253,7 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
         <span
           title={span.name}
           style={{
-            fontSize: 12,
+            fontSize: theme.spanNameFontSize,
             fontWeight: isSelected ? 600 : undefined,
             color: isError ? theme.spanNameErrorColor : theme.spanNameColor,
             overflow: 'hidden',
@@ -317,7 +321,7 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
              * inside an inner container positioned at the true bar coordinates.
              */}
             <div
-              title={`${span.name}  ${serviceName ?? ''}  ${formatNanoDuration(durationNs)}`}
+              title={`${span.name}  ${(span.resource?.['service.name'] as string | undefined) ?? ''}  ${formatNanoDuration(durationNs)}`}
               onClick={() => onSelect(span.spanId)}
               style={{
                 position: 'absolute',
@@ -378,10 +382,7 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
             {/* Folded inline event markers */}
             {(row.events ?? []).map((ev) => {
               const x = scale(Number(ev.startTimeUnixNano));
-              const evColor = theme.eventMarkerColor || serviceColor(
-                ev.resource?.['service.name'] as string | undefined,
-                theme.barPalette,
-              );
+              const evColor = theme.eventMarkerColor || spanBarColor(ev, theme.barErrorColor, theme.barPalette);
               return (
                 <div
                   key={ev.spanId}

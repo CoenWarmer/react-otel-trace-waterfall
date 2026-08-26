@@ -2,13 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { buildSpanTree } from './buildSpanTree';
 import type { OtelSpan } from '../types';
 
-function span(overrides: Partial<OtelSpan> & Pick<OtelSpan, 'spanId' | 'name'>): OtelSpan {
+function span(overrides: {
+  spanId: string; name: string;
+  traceId?: string; parentSpanId?: string;
+  startTimeUnixNano?: string; endTimeUnixNano?: string;
+}): OtelSpan {
   return {
     traceId: 'trace-1',
     startTimeUnixNano: '1000000000',
     endTimeUnixNano: '2000000000',
     ...overrides,
-  };
+  } as OtelSpan;
 }
 
 describe('buildSpanTree', () => {
@@ -119,5 +123,29 @@ describe('buildSpanTree', () => {
     const result = buildSpanTree([span({ spanId: 'solo', name: 'only span' })]);
     expect(result).toHaveLength(1);
     expect(result[0].children).toHaveLength(0);
+  });
+
+  // ── ms-timed spans (item 1) ────────────────────────────────────────────────
+
+  it('accepts startTimeMs / endTimeMs and converts to nano strings', () => {
+    const msSpans: OtelSpan[] = [
+      { traceId: 't', spanId: 'root', name: 'root', startTimeMs: 1000, endTimeMs: 2000 },
+      { traceId: 't', spanId: 'child', name: 'child', parentSpanId: 'root', startTimeMs: 1200, endTimeMs: 1800 },
+    ];
+    const [root] = buildSpanTree(msSpans);
+    // 1 ms = 1_000_000 ns; msToNano appends six zeros
+    expect(root.startTimeUnixNano).toBe('1000000000');    // 1000 ms * 10^6 ns/ms
+    expect(root.endTimeUnixNano).toBe('2000000000');
+    expect(root.children[0].startTimeUnixNano).toBe('1200000000');
+  });
+
+  it('sorts ms-timed spans by start time correctly', () => {
+    const msSpans: OtelSpan[] = [
+      { traceId: 't', spanId: 'late', name: 'late', startTimeMs: 500, endTimeMs: 1000 },
+      { traceId: 't', spanId: 'early', name: 'early', startTimeMs: 100, endTimeMs: 400 },
+    ];
+    const result = buildSpanTree(msSpans);
+    expect(result[0].spanId).toBe('early');
+    expect(result[1].spanId).toBe('late');
   });
 });

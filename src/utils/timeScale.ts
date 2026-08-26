@@ -10,8 +10,8 @@ export function getTraceDomain(spans: OtelSpan[]): [number, number] | null {
   let start = Infinity;
   let end = -Infinity;
   for (const s of spans) {
-    const s0 = Number(s.startTimeUnixNano);
-    const e0 = Number(s.endTimeUnixNano);
+    const s0 = 'startTimeUnixNano' in s ? Number(s.startTimeUnixNano) : s.startTimeMs * 1_000_000;
+    const e0 = 'endTimeUnixNano' in s ? Number(s.endTimeUnixNano) : s.endTimeMs * 1_000_000;
     if (s0 < start) start = s0;
     if (e0 > end) end = e0;
   }

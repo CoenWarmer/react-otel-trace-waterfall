@@ -1,11 +1,35 @@
 import type { OtelSpan, SpanNode } from '../types';
 
+/** Convert milliseconds to a nanosecond decimal string (no BigInt needed). */
+function msToNano(ms: number): string {
+  return `${Math.round(ms)}000000`;
+}
+
+/**
+ * Normalise an OtelSpan's timing to nanosecond strings.
+ * Accepts either the UnixNano or the Ms variant; always produces nano strings.
+ */
+function normalizeTimings(span: OtelSpan): { startTimeUnixNano: string; endTimeUnixNano: string } {
+  if ('startTimeUnixNano' in span) {
+    return { startTimeUnixNano: span.startTimeUnixNano, endTimeUnixNano: span.endTimeUnixNano };
+  }
+  return {
+    startTimeUnixNano: msToNano(span.startTimeMs),
+    endTimeUnixNano: msToNano(span.endTimeMs),
+  };
+}
+
 export function buildSpanTree(spans: OtelSpan[]): SpanNode[] {
   if (spans.length === 0) return [];
 
   const nodeMap = new Map<string, SpanNode>();
   for (const span of spans) {
-    nodeMap.set(span.spanId, { ...span, children: [], depth: 0 });
+    nodeMap.set(span.spanId, {
+      ...span,
+      ...normalizeTimings(span),
+      children: [],
+      depth: 0,
+    } as SpanNode);
   }
 
   const roots: SpanNode[] = [];

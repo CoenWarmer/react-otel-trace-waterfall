@@ -61,6 +61,8 @@ export interface ThemeTokens {
    * Default 4.
    */
   barHitPaddingPx: number;
+  /** Font size (px) for span name labels in the label column. Default 12. */
+  spanNameFontSize: number;
 }
 
 export const defaultTheme: ThemeTokens = {
@@ -90,6 +92,7 @@ export const defaultTheme: ThemeTokens = {
   eventMarkerColor: '',
   eventMarkerSize: 10,
   barHitPaddingPx: 4,
+  spanNameFontSize: 12,
 };
 
 export const darkTheme: ThemeTokens = {
@@ -119,4 +122,5 @@ export const darkTheme: ThemeTokens = {
   eventMarkerColor: '',
   eventMarkerSize: 10,
   barHitPaddingPx: 4,
+  spanNameFontSize: 12,
 };
