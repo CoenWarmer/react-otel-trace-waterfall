@@ -10,7 +10,7 @@ import { useContainerWidth } from '../hooks/useContainerWidth';
 import type { ZoomDomain } from '../hooks/useZoomPan';
 import { useZoomPan } from '../hooks/useZoomPan';
 import { SpanRow, LABEL_WIDTH, ROW_HEIGHT, BAR_HEIGHT } from './SpanRow';
-import type { ExpandComponentProps, RowPrefixProps, EventComponentProps } from './SpanRow';
+import type { ExpandComponentProps, RowPrefixProps, EventComponentProps, SpanNameProps, SpanBarProps } from './SpanRow';
 import { TimeAxis } from './TimeAxis';
 import { SpanDetail } from './SpanDetail';
 import { ThemeContext, useTheme } from '../ThemeContext';
@@ -52,7 +52,7 @@ export interface SpanComponentProps {
   onHoverEvent: (event: SpanNode | null) => void;
 }
 
-export type { ExpandComponentProps, RowPrefixProps, EventComponentProps };
+export type { ExpandComponentProps, RowPrefixProps, EventComponentProps, SpanNameProps, SpanBarProps };
 
 export interface TraceWaterfallProps {
   spans: OtelSpan[];
@@ -130,6 +130,28 @@ export interface TraceWaterfallProps {
    * Receives `{ span, x, isSelected }`.
    */
   EventMarkerComponent?: React.ComponentType<EventComponentProps>;
+  /**
+   * Replaces the text rendered for each span's name in the label column.
+   * The row's layout, truncation, and chevron are unaffected.
+   * Receives `{ row, span, isSelected }`.
+   *
+   * Note: a component that renders an `inline-block` element is not truncated by the
+   * parent's `text-overflow: ellipsis` — apply `max-width: 100%; overflow: hidden;
+   * text-overflow: ellipsis` in the component itself.
+   *
+   * Only applied when `SpanComponent` is NOT provided.
+   */
+  SpanNameComponent?: React.ComponentType<SpanNameProps>;
+  /**
+   * Replaces the bar drawn in the timeline column for each span.
+   * Rendered inside a `barWidth × BAR_HEIGHT` container at the bar's position;
+   * the library owns click handling and `barHitPaddingPx` hit-area padding.
+   * Receives `{ row, span, x, width, isSelected }` where `x` and `width` are the
+   * true bar coordinates (not the surrounding hit area).
+   *
+   * Only applied when `SpanComponent` is NOT provided.
+   */
+  SpanBarComponent?: React.ComponentType<SpanBarProps>;
   /** Called when the span detail panel is closed. */
   onCloseSpan?: () => void;
   /** Replaces the built-in loading skeleton. */
@@ -250,6 +272,8 @@ function TraceWaterfallInner({
   RowPrefixComponent,
   SpanComponent,
   EventMarkerComponent,
+  SpanNameComponent,
+  SpanBarComponent,
   onCloseSpan,
   SkeletonComponent,
   liveMode,
@@ -760,6 +784,8 @@ function TraceWaterfallInner({
                           ExpandComponent={ExpandComponent}
                           RowPrefixComponent={RowPrefixComponent}
                           EventMarkerComponent={EventMarkerComponent}
+                          SpanNameComponent={SpanNameComponent}
+                          SpanBarComponent={SpanBarComponent}
                           onToggle={toggle}
                           onSelect={select}
                           onHover={onSpanHover || TooltipComponent ? handleHover : undefined}

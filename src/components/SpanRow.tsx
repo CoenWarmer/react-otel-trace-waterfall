@@ -45,6 +45,24 @@ export interface RowPrefixProps {
   isNew: boolean;
 }
 
+/** Props passed to a custom span-name component. */
+export interface SpanNameProps {
+  row: FlatRow;
+  span: SpanNode;
+  isSelected: boolean;
+}
+
+/** Props passed to a custom span-bar component. */
+export interface SpanBarProps {
+  row: FlatRow;
+  span: SpanNode;
+  /** Left offset in px from the start of the time axis (the true bar position, not the hit area). */
+  x: number;
+  /** Bar width in px, already clamped to the minimum. */
+  width: number;
+  isSelected: boolean;
+}
+
 /** Props passed to a custom event marker component rendered in the timeline column. */
 export interface EventComponentProps {
   span: SpanNode;
@@ -78,6 +96,24 @@ export interface SpanRowProps {
    * Receives `{ span, x, isSelected }`.
    */
   EventMarkerComponent?: React.ComponentType<EventComponentProps>;
+  /**
+   * Replaces the text rendered for the span's name in the label column.
+   * The row's layout, truncation, and chevron are unaffected.
+   * Receives `{ row, span, isSelected }`.
+   *
+   * Note: a component that renders an `inline-block` element is not truncated by the
+   * parent's `text-overflow: ellipsis` — apply `max-width: 100%; overflow: hidden;
+   * text-overflow: ellipsis` in the component itself.
+   */
+  SpanNameComponent?: React.ComponentType<SpanNameProps>;
+  /**
+   * Replaces the bar drawn in the timeline column.
+   * Rendered inside a `barWidth × BAR_HEIGHT` container positioned at the bar's location;
+   * the library owns click handling and `barHitPaddingPx` hit-area padding.
+   * Receives `{ row, span, x, width, isSelected }` where `x` and `width` are the true
+   * bar coordinates (not the surrounding hit area).
+   */
+  SpanBarComponent?: React.ComponentType<SpanBarProps>;
   onToggle: (spanId: string) => void;
   onSelect: (spanId: string) => void;
   onHover?: (spanId: string) => void;
@@ -112,11 +148,12 @@ function DefaultEventMarker({
 }
 
 export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow(
-  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, EventMarkerComponent, onToggle, onSelect, onHover, onHoverEnd, onHoverEvent },
+  { row, scale, isSelected, isFocused, isNew = false, ExpandComponent, RowPrefixComponent, EventMarkerComponent, SpanNameComponent, SpanBarComponent, onToggle, onSelect, onHover, onHoverEnd, onHoverEvent },
   ref
 ) {
   const theme = useTheme();
   const { span, hasChildren, isExpanded } = row;
+  const hitPad = theme.barHitPaddingPx;
 
   // Inject keyframes on first render (idempotent).
   ensureKeyframes();
@@ -147,7 +184,6 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
       aria-expanded={hasChildren ? isExpanded : undefined}
       aria-selected={isSelected}
       tabIndex={isFocused ? 0 : -1}
-      onClick={() => onSelect(span.spanId)}
       onMouseEnter={onHover ? () => onHover(span.spanId) : undefined}
       onMouseLeave={onHoverEnd}
       style={{
@@ -156,7 +192,6 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
         height: ROW_HEIGHT,
         borderBottom: `1px solid ${theme.rowBorder}`,
         background: isSelected ? theme.rowSelectedBackground : undefined,
-        cursor: 'pointer',
         outline: 'none',
         boxShadow: isFocused ? `inset 0 0 0 2px ${theme.rowFocusRing}` : undefined,
         ...newRowStyle,
@@ -167,9 +202,10 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
         <RowPrefixComponent row={row} isSelected={isSelected} isNew={isNew} />
       )}
 
-      {/* Label column */}
+      {/* Label column — clicking here selects the span */}
       <div
         role="rowheader"
+        onClick={() => onSelect(span.spanId)}
         style={{
           width: LABEL_WIDTH,
           flexShrink: 0,
@@ -178,6 +214,7 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
           alignItems: 'center',
           gap: 4,
           overflow: 'hidden',
+          cursor: 'pointer',
         }}
       >
         {hasChildren ? (
@@ -220,7 +257,11 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
             whiteSpace: 'nowrap',
           }}
         >
-          {span.name}
+          {SpanNameComponent ? (
+            <SpanNameComponent row={row} span={span} isSelected={isSelected} />
+          ) : (
+            span.name
+          )}
         </span>
       </div>
 
@@ -231,6 +272,7 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
       >
         {span.kind === 'EVENT' ? (
           // Event spans: fixed-size marker centred on the start timestamp; no bar.
+          // Clicking the marker wrapper selects this event span.
           <div
             style={{
               position: 'absolute',
@@ -240,7 +282,9 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
               transform: 'translateX(-50%)',
               display: 'flex',
               alignItems: 'center',
+              cursor: 'pointer',
             }}
+            onClick={() => onSelect(span.spanId)}
           >
             {EventMarkerComponent ? (
               <EventMarkerComponent span={span} x={startPx} isSelected={isSelected} />
@@ -256,6 +300,7 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
           </div>
         ) : (
           <>
+            {/* Start-time tick line */}
             <div
               style={{
                 position: 'absolute',
@@ -266,38 +311,70 @@ export const SpanRow = forwardRef<HTMLDivElement, SpanRowProps>(function SpanRow
                 backgroundColor: theme.rowBorder,
               }}
             />
+            {/*
+             * Bar hit wrapper — extends the clickable area by `barHitPaddingPx` on every
+             * side so narrow bars remain aimable. The visual bar (or SpanBarComponent) sits
+             * inside an inner container positioned at the true bar coordinates.
+             */}
             <div
               title={`${span.name}  ${serviceName ?? ''}  ${formatNanoDuration(durationNs)}`}
+              onClick={() => onSelect(span.spanId)}
               style={{
                 position: 'absolute',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                left: startPx,
-                width: barWidth,
-                height: BAR_HEIGHT,
-                backgroundColor: barColor,
-                borderRadius: 3,
-                opacity: isSelected ? 1 : isError ? 0.9 : 0.8,
-                outline: isSelected ? `2px solid ${barColor}` : undefined,
-                outlineOffset: 1,
+                left: startPx - hitPad,
+                top: `calc(50% - ${BAR_HEIGHT / 2 + hitPad}px)`,
+                width: barWidth + hitPad * 2,
+                height: BAR_HEIGHT + hitPad * 2,
+                cursor: 'pointer',
               }}
-            />
-            {barWidth > 30 && (
+            >
+              {/* Inner container aligned to the true bar position */}
               <div
                 style={{
                   position: 'absolute',
-                  left: startPx + 4,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  fontSize: 10,
-                  color: '#fff',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none',
+                  top: hitPad,
+                  left: hitPad,
+                  width: barWidth,
+                  height: BAR_HEIGHT,
                 }}
               >
-                {formatNanoDuration(durationNs)}
+                {SpanBarComponent ? (
+                  <SpanBarComponent row={row} span={span} x={startPx} width={barWidth} isSelected={isSelected} />
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: barColor,
+                        borderRadius: 3,
+                        opacity: isSelected ? 1 : isError ? 0.9 : 0.8,
+                        outline: isSelected ? `2px solid ${barColor}` : undefined,
+                        outlineOffset: 1,
+                      }}
+                    />
+                    {barWidth > 30 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 4,
+                          top: 0,
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          fontSize: 10,
+                          color: '#fff',
+                          whiteSpace: 'nowrap',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        {formatNanoDuration(durationNs)}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            )}
+            </div>
             {/* Folded inline event markers */}
             {(row.events ?? []).map((ev) => {
               const x = scale(Number(ev.startTimeUnixNano));

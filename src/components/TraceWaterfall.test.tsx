@@ -172,10 +172,11 @@ describe('TraceWaterfall', () => {
     const onSelectSpan = vi.fn();
     render(<TraceWaterfall spans={spans} onSelectSpan={onSelectSpan} />);
 
-    // After first click the span name also appears in the info bar, so use the row element
-    const row = screen.getByRole('row', { name: /root span/i });
-    fireEvent.click(row);
-    fireEvent.click(row);
+    // After first click the span name also appears in the info bar, so target the rowheader
+    // rather than getByText which would match multiple elements.
+    const rowheader = screen.getByRole('rowheader');
+    fireEvent.click(rowheader);
+    fireEvent.click(rowheader);
 
     await waitFor(() => {
       expect(onSelectSpan).toHaveBeenLastCalledWith(null);

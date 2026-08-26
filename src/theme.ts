@@ -55,6 +55,12 @@ export interface ThemeTokens {
   eventMarkerColor: string;
   /** Diameter of event markers in px. */
   eventMarkerSize: number;
+  /**
+   * Transparent padding (px) added on every side of the bar's click target to make
+   * narrow bars easier to aim at. Does not affect the visual bar size.
+   * Default 4.
+   */
+  barHitPaddingPx: number;
 }
 
 export const defaultTheme: ThemeTokens = {
@@ -83,6 +89,7 @@ export const defaultTheme: ThemeTokens = {
   newRowHighlightColor: '#bee3f8',
   eventMarkerColor: '',
   eventMarkerSize: 10,
+  barHitPaddingPx: 4,
 };
 
 export const darkTheme: ThemeTokens = {
@@ -111,4 +118,5 @@ export const darkTheme: ThemeTokens = {
   newRowHighlightColor: '#2a4365',
   eventMarkerColor: '',
   eventMarkerSize: 10,
+  barHitPaddingPx: 4,
 };

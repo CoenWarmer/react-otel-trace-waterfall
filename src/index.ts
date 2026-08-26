@@ -9,7 +9,10 @@ export type {
   ExpandComponentProps,
   RowPrefixProps,
   EventComponentProps,
+  SpanNameProps,
+  SpanBarProps,
 } from './components/TraceWaterfall';
+export { ROW_HEIGHT, LABEL_WIDTH, INDENT_PX, BAR_HEIGHT } from './components/SpanRow';
 export { SpanDetail } from './components/SpanDetail';
 export { buildSpanTree } from './utils/buildSpanTree';
 export { flattenTree } from './utils/flattenTree';

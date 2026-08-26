@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { TraceWaterfall } from "./TraceWaterfall";
+import type { SpanNameProps, SpanBarProps } from "./TraceWaterfall";
 import type { OtelSpan, SpanNode } from "../types";
 import {
   simpleTrace,
@@ -264,5 +265,95 @@ export const FoldedEvents: Story = {
     height: "200px",
     foldEventsIntoParent: true,
     initialState: "expanded",
+  },
+};
+
+// ── SpanNameComponent slot ────────────────────────────────────────────────────
+// Shows a custom span-name renderer that badges ERROR spans with a red pill
+// and italicises SERVER spans. Everything else in the row (chevron, bar) is
+// provided by the library as usual.
+
+function CustomSpanName({ span }: SpanNameProps) {
+  const isError = span.status?.code === "ERROR";
+  const isServer = span.kind === "SERVER";
+  return (
+    <span
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        overflow: "hidden",
+        fontStyle: isServer ? "italic" : undefined,
+      }}
+    >
+      {isError && (
+        <span
+          style={{
+            flexShrink: 0,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: "0.05em",
+            padding: "1px 4px",
+            borderRadius: 3,
+            background: "#e53e3e",
+            color: "#fff",
+          }}
+        >
+          ERR
+        </span>
+      )}
+      <span
+        style={{
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {span.name}
+      </span>
+    </span>
+  );
+}
+
+export const CustomSpanNameSlot: Story = {
+  name: "SpanNameComponent",
+  args: {
+    spans: errorTrace,
+    height: "300px",
+    initialState: "expanded",
+    SpanNameComponent: CustomSpanName,
+  },
+};
+
+// ── SpanBarComponent slot ─────────────────────────────────────────────────────
+// Shows a custom bar renderer that draws a striped pattern for ERROR spans and
+// a solid gradient for others. The library still owns the hit area and click.
+
+function CustomSpanBar({ span, isSelected }: SpanBarProps) {
+  const isError = span.status?.code === "ERROR";
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        borderRadius: 3,
+        background: isError
+          ? "repeating-linear-gradient(45deg, #e53e3e 0px, #e53e3e 4px, #fc8181 4px, #fc8181 8px)"
+          : "linear-gradient(90deg, #4299e1, #48bb78)",
+        opacity: isSelected ? 1 : 0.85,
+        outline: isSelected ? "2px solid #4299e1" : undefined,
+        outlineOffset: 1,
+      }}
+    />
+  );
+}
+
+export const CustomSpanBarSlot: Story = {
+  name: "SpanBarComponent",
+  args: {
+    spans: errorTrace,
+    height: "300px",
+    initialState: "expanded",
+    SpanBarComponent: CustomSpanBar,
   },
 };
