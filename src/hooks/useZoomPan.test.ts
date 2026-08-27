@@ -262,4 +262,34 @@ describe('useZoomPan', () => {
     const { result } = renderHook(() => useZoomPan(START, END, { start: 100_000, end: 900_000 }));
     expect(result.current.isZoomed).toBe(true);
   });
+
+  // ── ready ──────────────────────────────────────────────────────────────────
+
+  it('snaps instead of animating on the first bounds sync once ready', () => {
+    // Mirrors mount: the padded bounds are only known once the container has
+    // been measured, so the fitted view must be committed without a transition.
+    let ready = false;
+    let end = END;
+    const { result, rerender } = renderHook(() => useZoomPan(START, end, { ready }));
+
+    vi.mocked(globalThis.requestAnimationFrame).mockClear();
+    ready = true;
+    end = 1_100_000; // grown by the padding derived from the measured width
+    rerender();
+
+    expect(result.current.domain).toEqual({ start: START, end: 1_100_000 });
+    expect(globalThis.requestAnimationFrame).not.toHaveBeenCalled();
+  });
+
+  it('animates bounds syncs that follow the first one', () => {
+    let end = END;
+    const { result, rerender } = renderHook(() => useZoomPan(START, end, { ready: true }));
+
+    vi.mocked(globalThis.requestAnimationFrame).mockClear();
+    end = 2_000_000;
+    rerender();
+
+    expect(globalThis.requestAnimationFrame).toHaveBeenCalled();
+    expect(result.current.domain.end).toBe(2_000_000);
+  });
 });

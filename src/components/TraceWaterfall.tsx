@@ -387,6 +387,10 @@ function TraceWaterfallInner({
       transitionDuration: liveUpdateDuration,
       transitionEasing: liveUpdateEasing,
       clampZoomToBounds,
+      // The bounds above are only final once there are spans to fit and a
+      // measured width to derive paddingNs from. Until then the hook snaps
+      // rather than animates, so the first painted frame is the fitted view.
+      ready: timelineWidth > 0 && traceDomain !== null,
     },
   );
 

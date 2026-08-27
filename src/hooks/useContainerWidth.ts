@@ -7,6 +7,12 @@ import { useRef, useState } from 'react';
  * moment React assigns the DOM element — including cases where the component
  * rendered an early return (spans=[]) on mount and the timeline div only
  * appears on a subsequent render.
+ *
+ * The width is also measured synchronously at ref-attach time. Ref assignment
+ * happens in the commit phase, so the resulting state update is flushed before
+ * the browser paints — without it the first frame paints at width 0 (no axis,
+ * no bars) and everything width-derived pops in one frame later, because
+ * ResizeObserver notifications land in a separate, post-paint React task.
  */
 export function useContainerWidth(): [React.RefObject<HTMLDivElement>, number] {
   const [width, setWidth] = useState(0);
@@ -25,6 +31,11 @@ export function useContainerWidth(): [React.RefObject<HTMLDivElement>, number] {
         observerRef.current?.disconnect();
         observerRef.current = null;
         if (!el) return;
+        // Measure now so the first painted frame already has a usable width.
+        // Guarded on > 0 so environments without layout (jsdom) keep whatever
+        // the ResizeObserver reports below.
+        const measured = el.getBoundingClientRect().width;
+        if (measured > 0) setWidth(measured);
         const ro = new ResizeObserver(([entry]) => {
           setWidth(entry.contentRect.width);
         });
