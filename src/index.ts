@@ -3,6 +3,7 @@ export type {
   TraceWaterfallProps,
   ZoomResetProps,
   FitButtonProps,
+  FollowButtonProps,
   SpanInspectProps,
   SpanTooltipProps,
   SpanComponentProps,

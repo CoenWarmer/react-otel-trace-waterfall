@@ -27,6 +27,14 @@ export interface ZoomResetProps {
 /** Props received by a custom "Fit" button component. */
 export type FitButtonProps = ZoomResetProps;
 
+/** Props received by a custom "Follow" button component. */
+export interface FollowButtonProps {
+  /** Whether the waterfall is currently in live-following mode. */
+  isFollowing: boolean;
+  /** Call to enable live-following mode. */
+  onClick: () => void;
+}
+
 /** Props received by a custom span detail/inspect panel. */
 export interface SpanInspectProps {
   span: SpanNode;
@@ -94,6 +102,11 @@ export interface TraceWaterfallProps {
   ZoomResetComponent?: React.ComponentType<ZoomResetProps>;
   /** Called whenever the zoom/pan is reset (by built-in button or FitButtonComponent). */
   onZoomReset?: () => void;
+  /**
+   * Replaces the built-in "Follow" button in the info bar.
+   * Receives `{ isFollowing, onClick }` where `onClick` enables live-following mode.
+   */
+  FollowButtonComponent?: React.ComponentType<FollowButtonProps>;
 
   // ── Selection ──────────────────────────────────────────────────────────────
   /** Called whenever the selected span changes. Receives null when the selection is cleared. */
@@ -293,6 +306,7 @@ function TraceWaterfallInner({
   FitButtonComponent,
   ZoomResetComponent,
   onZoomReset,
+  FollowButtonComponent,
   onSelectSpan,
   onSpanHover,
   TooltipComponent,
@@ -598,6 +612,10 @@ function TraceWaterfallInner({
     onZoomReset?.();
   }
 
+  function handleFollow() {
+    follow();
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (disableKeyboardControls || rows.length === 0) return;
     const idx = focusedIndex;
@@ -684,6 +702,7 @@ function TraceWaterfallInner({
 
   // ── Main render ────────────────────────────────────────────────────────────
   const InspectPanel = SpanInspectComponent ?? SpanDetail;
+  const CustomFit = FitButtonComponent ?? ZoomResetComponent;
 
   return (
     <>
@@ -709,30 +728,52 @@ function TraceWaterfallInner({
         <span>·</span>
         <span>{rows.length} visible</span>
         {selectedSpan && (<><span>·</span><span style={{ color: theme.rowFocusRing }}>{selectedSpan.name}</span></>)}
-        {allowZoom && (() => {
-          const CustomFit = FitButtonComponent ?? ZoomResetComponent;
-          return CustomFit
-            ? <CustomFit onClick={handleZoomReset} />
-            : (
-              <button
-                onClick={handleZoomReset}
-                title="Fit the full trace into the timeline"
-                style={{
-                  marginLeft: 'auto',
-                  background: effectiveLiveMode ? 'none' : theme.rowFocusRing,
-                  border: `1px solid ${effectiveLiveMode ? theme.borderColor : theme.rowFocusRing}`,
-                  borderRadius: 4,
-                  padding: '1px 7px',
-                  fontSize: 11,
-                  color: effectiveLiveMode ? theme.spanNameColor : '#fff',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-                }}
-              >
-                Fit
-              </button>
-            );
-        })()}
+        {allowZoom && (
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+            {FollowButtonComponent
+              ? <FollowButtonComponent isFollowing={effectiveLiveMode} onClick={handleFollow} />
+              : (
+                <button
+                  onClick={handleFollow}
+                  title="Track the trace end as new spans arrive"
+                  style={{
+                    background: effectiveLiveMode ? theme.rowFocusRing : 'none',
+                    border: `1px solid ${effectiveLiveMode ? theme.rowFocusRing : theme.borderColor}`,
+                    borderRadius: 4,
+                    padding: '1px 7px',
+                    fontSize: 11,
+                    color: effectiveLiveMode ? '#fff' : theme.spanNameColor,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                  }}
+                >
+                  Follow
+                </button>
+              )
+            }
+            {CustomFit
+              ? <CustomFit onClick={handleZoomReset} />
+              : (
+                <button
+                  onClick={handleZoomReset}
+                  title="Fit the full trace into the timeline"
+                  style={{
+                    background: !effectiveLiveMode ? theme.rowFocusRing : 'none',
+                    border: `1px solid ${!effectiveLiveMode ? theme.rowFocusRing : theme.borderColor}`,
+                    borderRadius: 4,
+                    padding: '1px 7px',
+                    fontSize: 11,
+                    color: !effectiveLiveMode ? '#fff' : theme.spanNameColor,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s, color 0.15s, border-color 0.15s',
+                  }}
+                >
+                  Fit
+                </button>
+              )
+            }
+          </div>
+        )}
       </div>
 
       {/* Main area */}
