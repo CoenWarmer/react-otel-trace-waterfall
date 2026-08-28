@@ -40,11 +40,16 @@ export function TimeAxis({ scale, traceStart }: TimeAxisProps) {
   const [, rangeEnd] = scale.range();
   const showZero = x0 >= 0 && x0 <= rangeEnd;
 
-  // Generate ticks in relative elapsed-ns space [0, spanNs] to avoid float-precision issues
-  // with the huge absolute nanosecond Unix timestamps used in the domain (>Number.MAX_SAFE_INTEGER).
-  const relScale = scaleLinear().domain([0, spanNs]).range([0, rangeEnd]);
-  const relativeTicks = relScale.ticks(6).filter(
-    (dt) => !showZero || Math.abs(relScale(dt) - x0) > 30
+  // Generate ticks in elapsed-ns space relative to traceStart — not [0, spanNs].
+  // This anchors ticks to absolute timestamps, so they scroll with the domain in
+  // follow-end mode instead of staying fixed when the viewport width is constant.
+  // Using (t - traceStart) keeps values well within MAX_SAFE_INTEGER while
+  // still avoiding precision issues with raw Unix nanosecond timestamps.
+  const relDomainStart = domainStart - traceStart;
+  const relDomainEnd = domainEnd - traceStart;
+  const relDomainScale = scaleLinear().domain([relDomainStart, relDomainEnd]).range([0, rangeEnd]);
+  const ticks = relDomainScale.ticks(6).filter(
+    (dt) => !showZero || Math.abs(relDomainScale(dt) - x0) > 30
   );
 
   return (
@@ -67,8 +72,8 @@ export function TimeAxis({ scale, traceStart }: TimeAxisProps) {
         </div>
       )}
 
-      {relativeTicks.map((dt) => {
-        const x = relScale(dt);
+      {ticks.map((dt) => {
+        const x = relDomainScale(dt);
         const label = formatInUnit(dt, unit);
         return (
           <div
@@ -85,7 +90,7 @@ export function TimeAxis({ scale, traceStart }: TimeAxisProps) {
       <div style={{ position: 'absolute', right: 0, top: 0, transform: 'translateX(50%)' }}>
         <div style={{ width: 1, height: 5, backgroundColor: theme.axisTickColor, margin: '0 auto' }} />
         <div style={{ fontSize: 10, color: theme.axisLabelColor, whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-          {formatInUnit(spanNs, unit)}
+          {formatInUnit(relDomainEnd, unit)}
         </div>
       </div>
     </div>
