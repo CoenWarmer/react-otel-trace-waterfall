@@ -6,6 +6,8 @@ const useIsomorphicLayoutEffect = typeof document !== 'undefined' ? useLayoutEff
 /** Cubic ease-out — fast start, smooth deceleration. */
 export const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
+export type FollowMode = 'fit' | 'follow-end';
+
 export interface ZoomDomain {
   start: number;
   end: number;
@@ -50,6 +52,16 @@ export interface UseZoomPanOptions {
    */
   clampZoomToBounds?: boolean;
   /**
+   * Controls how the viewport tracks new spans while following is active.
+   *
+   * `"fit"`        (default) — fits the entire trace on every update. The viewport
+   *                zooms out as more spans arrive.
+   * `"follow-end"` — maintains the current zoom level and slides the right edge
+   *                of the viewport to the trace end. The user always sees the newest
+   *                events without losing their zoom context.
+   */
+  followMode?: FollowMode;
+  /**
    * Whether the bounds passed in are final. Consumers set this to false while
    * they still lack an input needed to compute them — e.g. the container width
    * that px-based timeline padding is derived from, which is only known after
@@ -81,7 +93,7 @@ export function useZoomPan(
   const options: UseZoomPanOptions = thirdArg && 'start' in thirdArg
     ? { initialDomain: thirdArg as ZoomDomain }
     : (thirdArg as UseZoomPanOptions | undefined) ?? {};
-  const { initialDomain, transitionDuration = 300, transitionEasing = easeOutCubic, clampZoomToBounds = false, ready = true } = options;
+  const { initialDomain, transitionDuration = 300, transitionEasing = easeOutCubic, clampZoomToBounds = false, followMode = 'fit', ready = true } = options;
   const [domain, setDomain] = useState<ZoomDomain>(
     initialDomain ?? { start: traceStart, end: traceEnd }
   );
@@ -151,7 +163,15 @@ export function useZoomPan(
     if (ready) settledRef.current = true;
 
     if (isFollowing) {
-      const target = { start: traceStart, end: traceEnd };
+      let target: ZoomDomain;
+      if (followMode === 'follow-end') {
+        const viewWidth = domainRef.current.end - domainRef.current.start;
+        let targetStart = traceEnd - viewWidth;
+        if (clampZoomToBounds) targetStart = Math.max(targetStart, traceStart);
+        target = { start: targetStart, end: traceEnd };
+      } else {
+        target = { start: traceStart, end: traceEnd };
+      }
       const cur = domainRef.current;
       if (cur.start === target.start && cur.end === target.end) return;
       if (!wasSettled) {
@@ -173,7 +193,7 @@ export function useZoomPan(
         setDomain({ start: traceStart, end: traceEnd });
       }
     }
-  }, [traceStart, traceEnd, isFollowing, ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [traceStart, traceEnd, isFollowing, followMode, ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dragRef = useRef<{ clientX: number; domainSnapshot: ZoomDomain } | null>(null);
 

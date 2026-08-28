@@ -8,7 +8,7 @@ import { buildSpanTree } from '../utils/buildSpanTree';
 import { flattenTree } from '../utils/flattenTree';
 import { getTraceDomain, buildTimeScale } from '../utils/timeScale';
 import { useContainerWidth } from '../hooks/useContainerWidth';
-import type { ZoomDomain } from '../hooks/useZoomPan';
+import type { ZoomDomain, FollowMode } from '../hooks/useZoomPan';
 import { useZoomPan } from '../hooks/useZoomPan';
 import { SpanRow, LABEL_WIDTH, ROW_HEIGHT, BAR_HEIGHT } from './SpanRow';
 import type { ExpandComponentProps, RowPrefixProps, EventComponentProps, SpanNameProps, SpanBarProps } from './SpanRow';
@@ -178,6 +178,15 @@ export interface TraceWaterfallProps {
    * Default: easeOutCubic (exported from the package).
    */
   liveUpdateEasing?: (t: number) => number;
+  /**
+   * Controls how the viewport tracks the trace while live mode is active.
+   *
+   * `"fit"`        (default) — fits the entire trace in the viewport on every update.
+   * `"follow-end"` — keeps the current zoom level and slides the viewport so the
+   *                right edge tracks the trace end. The user always sees the newest
+   *                events without losing their zoom context.
+   */
+  followMode?: FollowMode;
 
   // ── Keyboard ───────────────────────────────────────────────────────────────
   /** Disable arrow-key / Home / End keyboard navigation. Default false. */
@@ -299,6 +308,7 @@ function TraceWaterfallInner({
   onLiveModeChange,
   liveUpdateDuration,
   liveUpdateEasing,
+  followMode,
   disableKeyboardControls = false,
   disableInspectPanel = false,
   inspectPanelContainer,
@@ -387,6 +397,7 @@ function TraceWaterfallInner({
       transitionDuration: liveUpdateDuration,
       transitionEasing: liveUpdateEasing,
       clampZoomToBounds,
+      followMode,
       // The bounds above are only final once there are spans to fit and a
       // measured width to derive paddingNs from. Until then the hook snaps
       // rather than animates, so the first painted frame is the fitted view.
